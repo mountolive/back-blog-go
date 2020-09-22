@@ -1,4 +1,4 @@
-package user
+package usecase
 
 import (
 	"errors"
@@ -16,9 +16,11 @@ type UserValidator interface {
 }
 
 type User struct {
-	Username string
-	Email    string
-	Password string
+	Username  string
+	Email     string
+	Password  string
+	FirstName string
+	LastName  string
 }
 
 type InvalidEmailError struct {
@@ -27,7 +29,7 @@ type InvalidEmailError struct {
 }
 
 func (u *InvalidEmailError) Error() string {
-	return fmt.Sprintf("The passed email: %v, has an error: %w \n",
+	return fmt.Sprintf("The passed email: %v, has an error: %v \n",
 		u.BadEmail, u.Err)
 }
 

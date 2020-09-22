@@ -1,4 +1,4 @@
-package user
+package usecase
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type createUserCase struct {
+type newUserCase struct {
 	Name      string
 	Username  string
 	Email     string
@@ -16,43 +16,13 @@ type createUserCase struct {
 	Err       error
 }
 
-const msg = "Got %v, Expected %v"
-
-// Mocks
-type trueValidator struct{}
-
-func (t *trueValidator) ValidateEmail(email string) error {
-	return nil
-}
-func (t *trueValidator) ValidatePassword(password string) error {
-	return nil
-}
-
-type falseValidatorEmail struct{}
-
-func (f *falseValidatorEmail) ValidateEmail(email string) error {
-	return &InvalidEmailError{errors.New("Bad"), email}
-}
-func (f *falseValidatorEmail) ValidatePassword(password string) error {
-	return nil
-}
-
-type falseValidatorPassword struct{}
-
-func (f *falseValidatorPassword) ValidateEmail(email string) error {
-	return nil
-}
-func (f *falseValidatorPassword) ValidatePassword(password string) error {
-	return InvalidPasswordError
-}
-
-// Tests
 func TestUser(t *testing.T) {
+	genericErrMsg := "Got result: %v, but Expected: %v"
 	tValid := &trueValidator{}
 	fValidEmail := &falseValidatorEmail{}
 	fValidPass := &falseValidatorPassword{}
 	t.Run("NewUser", func(t *testing.T) {
-		testCases := []createUserCase{
+		testCases := []newUserCase{
 			{
 				Name:      "Correct email and password",
 				Username:  "any",
@@ -86,13 +56,17 @@ func TestUser(t *testing.T) {
 				if err != nil && errors.As(err, &invalid) {
 					invErr := invalid.Unwrap()
 					tcErr := errors.Unwrap(tc.Err)
-					assert.True(t, invErr.Error() == tcErr.Error(), msg, invErr, tcErr)
+					assert.True(t, invErr.Error() == tcErr.Error(), genericErrMsg,
+						invErr, tcErr)
 				} else if err != nil {
-					assert.True(t, errors.Is(err, tc.Err), msg, err, tc.Err)
+					assert.True(t, errors.Is(err, tc.Err), genericErrMsg, err, tc.Err)
 				} else {
-					assert.True(t, user.Username == tc.Username, msg, user.Username, tc.Username)
-					assert.True(t, user.Email == tc.Email, msg, user.Email, tc.Email)
-					assert.True(t, user.Password == tc.Password, msg, user.Password, tc.Password)
+					assert.True(t, user.Username == tc.Username, genericErrMsg,
+						user.Username, tc.Username)
+					assert.True(t, user.Email == tc.Email, genericErrMsg,
+						user.Email, tc.Email)
+					assert.True(t, user.Password == tc.Password, genericErrMsg,
+						user.Password, tc.Password)
 				}
 			})
 		}
