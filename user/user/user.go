@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+var InvalidPasswordError = errors.New("Password should have " +
+	"more than 6 characters, " +
+	"at least one number and " +
+	"one letter")
+
 type UserValidator interface {
 	ValidateEmail(email string) error
 	ValidatePassword(password string) error
@@ -22,18 +27,13 @@ type InvalidEmailError struct {
 }
 
 func (u *InvalidEmailError) Error() string {
-	return fmt.Sprintf("The passed email: %v, has an error: %v \n",
+	return fmt.Sprintf("The passed email: %v, has an error: %w \n",
 		u.BadEmail, u.Err)
 }
 
 func (u *InvalidEmailError) Unwrap() error {
 	return u.Err
 }
-
-var InvalidPasswordError = errors.New("Password should have " +
-	"more than 6 characters, " +
-	"at least one number and " +
-	"one letter")
 
 func NewUser(username, email, password string, validator UserValidator) (*User, error) {
 	user := &User{}
