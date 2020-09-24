@@ -9,42 +9,51 @@ import (
 )
 
 type changePasswordCase struct {
-	Name   string
-	Repo   *UserRepository
-	Dto    *ChangePasswordDto
-	ExpErr error
+	Name          string
+	Description   string
+	Repo          *UserRepository
+	Dto           *ChangePasswordDto
+	ContextCancel bool
+	ExpErr        error
 }
 
 type createUserCase struct {
-	Name   string
-	Dto    *CreateUserDto
-	ExpErr error
+	Name          string
+	Description   string
+	Dto           *CreateUserDto
+	Repo          *UserRepository
+	ContextCancel bool
+	ExpErr        error
 }
 
 type updateUserCase struct {
-	Name   string
-	Dto    *UpdateUserDto
-	ExpErr error
+	Name          string
+	Description   string
+	Dto           *UpdateUserDto
+	Repo          *UserRepository
+	ContextCancel bool
+	ExpErr        error
 }
 
 func TestUserRepository(t *testing.T) {
 	genericErrMsg := "Got value: %v, Expected: %v"
-	correctChangePassword := &ChangePasswordDto{
-		Email:       "test@test.com",
-		OldPassword: "oldpassword1",
-		NewPassword: "Abcdefgh111.",
-	}
-	badEmailChangePassword := &ChangePasswordDto{
-		Email:       "test@tes",
-		OldPassword: "oldpassword1",
-		NewPassword: "Abcdefgh111.",
-	}
 	happyPathStore := &happyPathUserStoreMock{}
 	erroredStore := &erroredUserStoreMock{}
 	t.Run("Change Password", func(t *testing.T) {
+		correctChangePassword := &ChangePasswordDto{
+			Email:       "test@test.com",
+			OldPassword: "Oldpassword1",
+			NewPassword: "Abcdefgh111.",
+		}
+		badEmailChangePassword := &ChangePasswordDto{
+			Email:       "test@tes",
+			OldPassword: "Oldpassword1",
+			NewPassword: "Abcdefgh111.",
+		}
 		testCases := []changePasswordCase{
 			{
-				Name: "Not found user",
+				Name:        "Not found user email",
+				Description: "It should error out from the UserStore, Email",
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     erroredStore,
@@ -53,7 +62,18 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: UserNotFoundError,
 			},
 			{
-				Name: "Malformed email",
+				Name:        "Not found user username",
+				Description: "It should error out from the UserStore, Username",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     erroredStore,
+				},
+				Dto:    correctChangePassword,
+				ExpErr: UserNotFoundError,
+			},
+			{
+				Name:        "Malformed email",
+				Description: "It should error out from the Validator, Bad Email",
 				Repo: &UserRepository{
 					Validator: &falseValidatorEmail{},
 					Store:     happyPathStore,
@@ -62,7 +82,8 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: MalformedEmailError,
 			},
 			{
-				Name: "Not valid old password",
+				Name:        "Not valid old password",
+				Description: "It should error out from the UserStore, Wrong Old Password",
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     erroredStore,
@@ -71,7 +92,8 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: InvalidOldPasswordError,
 			},
 			{
-				Name: "Not valid new password",
+				Name:        "Not valid new password",
+				Description: "It should error out from the Validator, Bad Password",
 				Repo: &UserRepository{
 					Validator: &falseValidatorPassword{},
 					Store:     happyPathStore,
@@ -80,7 +102,19 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: InvalidPasswordError,
 			},
 			{
-				Name: "Valid password",
+				Name:        "Context canceled",
+				Description: "It should fail with a OperationCanceledError",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathStore,
+				},
+				Dto:           correctChangePassword,
+				ContextCancel: true,
+				ExpErr:        OperationCanceledError,
+			},
+			{
+				Name:        "Valid password",
+				Description: "It should change the password properly",
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     happyPathStore,
@@ -90,12 +124,198 @@ func TestUserRepository(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
-				err := tc.Repo.ChangePassword(context.Background(), tc.Dto)
+				t.Log(tc.Description)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				if tc.ContextCancel {
+					cancel()
+				}
+				err := tc.Repo.ChangePassword(ctx, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, errors.Is(err, tc.ExpErr), genericErrMsg, err, tc.ExpErr)
 				} else {
 					require.Nil(t, err, genericErrMsg, err, nil)
 				}
+			})
+		}
+	})
+	t.Run("Create User", func(t *testing.T) {
+		incorrectEmailDto := &CreateUserDto{
+			Email:     "non-existence",
+			Username:  "correct",
+			FirstName: "Bill",
+			LastName:  "Totte",
+			Password:  "12345678j.",
+		}
+		regularDto := &CreateUserDto{
+			Email:     "ada@lovelace.com",
+			Username:  "ada",
+			FirstName: "Ada",
+			LastName:  "Lovelace",
+			Password:  "12345678j.",
+		}
+		incorrectPasswordDto := &CreateUserDto{
+			Email:     "good@good.com",
+			Username:  "good",
+			FirstName: "Alexander",
+			LastName:  "Grothendiek",
+			Password:  "nope",
+		}
+		happyPathUserStore := &happyPathUserStoreMock{}
+		testCases := []createUserCase{
+			{
+				Name:        "Malformed email",
+				Description: "It should fail fast after checking invalid email",
+				Repo: &UserRepository{
+					Validator: &falseValidatorEmail{},
+					Store:     happyPathUserStore,
+				},
+				Dto:    incorrectEmailDto,
+				ExpErr: &InvalidEmailError{errors.New("Bad"), incorrectEmailDto.Email},
+			},
+			{
+				Name:        "Repeated email or username",
+				Description: "It should fail after the store finds a matching existing user",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathUserStore,
+				},
+				Dto:    regularDto,
+				ExpErr: UserNotFoundError,
+			},
+			{
+				Name:        "Invalid password",
+				Description: "It should fail fast as the password is invalid",
+				Repo: &UserRepository{
+					Validator: &falseValidatorPassword{},
+					Store:     happyPathUserStore,
+				},
+				Dto:    incorrectPasswordDto,
+				ExpErr: InvalidPasswordError,
+			},
+			{
+				Name:        "Context canceled",
+				Description: "It should return a proper *UserDto",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathStore,
+				},
+				ContextCancel: true,
+				Dto:           regularDto,
+				ExpErr:        OperationCanceledError,
+			},
+			{
+				Name:        "Correct create",
+				Description: "It should return a proper *UserDto",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathStore,
+				},
+				Dto: regularDto,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.Name, func(t *testing.T) {
+				t.Log(tc.Description)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				if tc.ContextCancel {
+					cancel()
+				}
+				dto, err := tc.Repo.CreateUser(ctx, tc.Dto)
+				if tc.ExpErr != nil {
+					require.True(t, errors.Is(err, tc.ExpErr), tc.Description)
+					return
+				}
+				require.Equal(t, dto.Username, tc.Dto.Username, genericErrMsg,
+					dto.Username, tc.Dto.Username)
+				require.Equal(t, dto.Email, tc.Dto.Email, genericErrMsg,
+					dto.Email, tc.Dto.Email)
+				require.Equal(t, dto.FirstName, tc.Dto.FirstName, genericErrMsg,
+					dto.FirstName, tc.Dto.FirstName)
+				require.Equal(t, dto.LastName, tc.Dto.LastName, genericErrMsg,
+					dto.LastName, tc.Dto.LastName)
+			})
+		}
+	})
+
+	t.Run("Update User", func(t *testing.T) {
+		incorrectEmailDto := &UpdateUserDto{
+			Email:     "bad-company",
+			Username:  "correct",
+			FirstName: "Samuel",
+			LastName:  "Beckett",
+		}
+		regularDto := &UpdateUserDto{
+			Email:     "barbara@liskov.com",
+			Username:  "liskov",
+			FirstName: "Barb",
+			LastName:  "Liskov",
+		}
+		happyPathUserStore := &happyPathUserStoreMock{}
+		testCases := []updateUserCase{
+			{
+				Name:        "Malformed email",
+				Description: "It should fail fast after checking invalid email",
+				Repo: &UserRepository{
+					Validator: &falseValidatorEmail{},
+					Store:     happyPathUserStore,
+				},
+				Dto:    incorrectEmailDto,
+				ExpErr: &InvalidEmailError{errors.New("Bad"), incorrectEmailDto.Email},
+			},
+			{
+				Name:        "Repeated email or username",
+				Description: "It should fail after the store finds a matching existing user",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathUserStore,
+				},
+				Dto:    regularDto,
+				ExpErr: UserNotFoundError,
+			},
+			{
+				Name:        "Context canceled",
+				Description: "It should fail fast because of the cancelled context",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathStore,
+				},
+				ContextCancel: true,
+				Dto:           regularDto,
+				ExpErr:        OperationCanceledError,
+			},
+			{
+				Name:        "Correct update",
+				Description: "It should return a proper *UserDto",
+				Repo: &UserRepository{
+					Validator: &trueValidator{},
+					Store:     happyPathStore,
+				},
+				Dto: regularDto,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.Name, func(t *testing.T) {
+				t.Log(tc.Description)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				if tc.ContextCancel {
+					cancel()
+				}
+				dto, err := tc.Repo.UpdateUser(ctx, tc.Dto)
+				if tc.ExpErr != nil {
+					require.True(t, errors.Is(err, tc.ExpErr), tc.Description)
+					return
+				}
+				require.Equal(t, dto.Username, tc.Dto.Username, genericErrMsg,
+					dto.Username, tc.Dto.Username)
+				require.Equal(t, dto.Email, tc.Dto.Email, genericErrMsg,
+					dto.Email, tc.Dto.Email)
+				require.Equal(t, dto.FirstName, tc.Dto.FirstName, genericErrMsg,
+					dto.FirstName, tc.Dto.FirstName)
+				require.Equal(t, dto.LastName, tc.Dto.LastName, genericErrMsg,
+					dto.LastName, tc.Dto.LastName)
 			})
 		}
 	})

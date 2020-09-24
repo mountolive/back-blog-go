@@ -79,3 +79,30 @@ func (m *erroredUserStoreMock) Update(ctx context.Context, u *User) (*UserDto, e
 func (m *erroredUserStoreMock) ReadOne(ctx context.Context, crit ...Lookup) (*UserDto, error) {
 	return nil, errors.New("Not found")
 }
+
+// Not found for ReadOne mock
+
+type notFoundForReadOneStoreMock struct{}
+
+func (m *notFoundForReadOneStoreMock) Create(ctx context.Context, u *User) (*UserDto, error) {
+	return &UserDto{
+		Email:     u.Email,
+		Username:  u.Username,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+	}, nil
+
+}
+
+func (m *notFoundForReadOneStoreMock) Update(ctx context.Context, u *User) (*UserDto, error) {
+	return &UserDto{
+		Email:     u.Email,
+		Username:  u.Username,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+	}, nil
+}
+
+func (m *notFoundForReadOneStoreMock) ReadOne(ctx context.Context, c ...Lookup) (*UserDto, error) {
+	return nil, errors.New("Not found")
+}

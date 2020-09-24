@@ -11,6 +11,7 @@ var (
 	UserNotFoundError       = errors.New("The user was not found in the DB")
 	MalformedEmailError     = errors.New("The email passed is invalid")
 	InvalidOldPasswordError = errors.New("The old password passed doesn't match the one expected")
+	OperationCanceledError  = errors.New("The context of the operation was canceled")
 )
 
 type Post struct {
@@ -47,6 +48,7 @@ type UpdateUserDto struct {
 
 type ChangePasswordDto struct {
 	Email,
+	Username,
 	OldPassword,
 	NewPassword string
 }
