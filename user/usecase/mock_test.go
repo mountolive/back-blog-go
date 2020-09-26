@@ -14,6 +14,9 @@ func (t *trueValidator) ValidateEmail(email string) error {
 func (t *trueValidator) ValidatePassword(password string) error {
 	return nil
 }
+func (t *trueValidator) ValidatePasswordMatch(password, newPassword string) error {
+	return nil
+}
 
 // Invalid email mock
 type falseValidatorEmail struct{}
@@ -22,6 +25,9 @@ func (f *falseValidatorEmail) ValidateEmail(email string) error {
 	return &InvalidEmailError{errors.New("Bad"), email}
 }
 func (f *falseValidatorEmail) ValidatePassword(password string) error {
+	return nil
+}
+func (t *falseValidatorEmail) ValidatePasswordMatch(password, newPassword string) error {
 	return nil
 }
 
@@ -34,11 +40,27 @@ func (f *falseValidatorPassword) ValidateEmail(email string) error {
 func (f *falseValidatorPassword) ValidatePassword(password string) error {
 	return InvalidPasswordError
 }
+func (t *falseValidatorPassword) ValidatePasswordMatch(password, newPassword string) error {
+	return nil
+}
+
+// Passwords don't match mock
+type falseValidatorPasswordsNotMatching struct{}
+
+func (f *falseValidatorPasswordsNotMatching) ValidateEmail(email string) error {
+	return nil
+}
+func (f *falseValidatorPasswordsNotMatching) ValidatePassword(password string) error {
+	return InvalidPasswordError
+}
+func (t *falseValidatorPasswordsNotMatching) ValidatePasswordMatch(password, newPassword string) error {
+	return nil
+}
 
 // UserStore lame mock
 type happyPathUserStoreMock struct{}
 
-func (m *happyPathUserStoreMock) Create(ctx context.Context, u *User) (*UserDto, error) {
+func (m *happyPathUserStoreMock) Create(ctx context.Context, u *CreateUserDto) (*UserDto, error) {
 	return &UserDto{
 		Email:     u.Email,
 		Username:  u.Username,
@@ -47,7 +69,7 @@ func (m *happyPathUserStoreMock) Create(ctx context.Context, u *User) (*UserDto,
 	}, nil
 }
 
-func (m *happyPathUserStoreMock) Update(ctx context.Context, u *User) (*UserDto, error) {
+func (m *happyPathUserStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
 	return &UserDto{
 		Email:     u.Email,
 		Username:  u.Username,
@@ -56,7 +78,7 @@ func (m *happyPathUserStoreMock) Update(ctx context.Context, u *User) (*UserDto,
 	}, nil
 }
 
-func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, crit ...Lookup) (*UserDto, error) {
+func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, crit ...Criteria) (*UserDto, error) {
 	return &UserDto{
 		Email:     "mock@mock.com",
 		Username:  "mocking",
@@ -65,26 +87,42 @@ func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, crit ...Lookup) (*
 	}, nil
 }
 
+func (m *happyPathUserStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
+	return nil
+}
+
+func (m *happyPathUserStoreMock) UpdatePassword(c context.Context, d *ChangePasswordDto) error {
+	return nil
+}
+
 // Errored userStore
 type erroredUserStoreMock struct{}
 
-func (m *erroredUserStoreMock) Create(ctx context.Context, u *User) (*UserDto, error) {
+func (m *erroredUserStoreMock) Create(ctx context.Context, u *CreateUserDto) (*UserDto, error) {
 	return nil, errors.New("Not found")
 }
 
-func (m *erroredUserStoreMock) Update(ctx context.Context, u *User) (*UserDto, error) {
+func (m *erroredUserStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
 	return nil, errors.New("Not found")
 }
 
-func (m *erroredUserStoreMock) ReadOne(ctx context.Context, crit ...Lookup) (*UserDto, error) {
+func (m *erroredUserStoreMock) ReadOne(ctx context.Context, crit ...Criteria) (*UserDto, error) {
 	return nil, errors.New("Not found")
+}
+
+func (m *erroredUserStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
+	return nil
+}
+
+func (m *erroredUserStoreMock) UpdatePassword(c context.Context, d *ChangePasswordDto) error {
+	return nil
 }
 
 // Not found for ReadOne mock
 
 type notFoundForReadOneStoreMock struct{}
 
-func (m *notFoundForReadOneStoreMock) Create(ctx context.Context, u *User) (*UserDto, error) {
+func (m *notFoundForReadOneStoreMock) Create(ctx context.Context, u *CreateUserDto) (*UserDto, error) {
 	return &UserDto{
 		Email:     u.Email,
 		Username:  u.Username,
@@ -94,7 +132,7 @@ func (m *notFoundForReadOneStoreMock) Create(ctx context.Context, u *User) (*Use
 
 }
 
-func (m *notFoundForReadOneStoreMock) Update(ctx context.Context, u *User) (*UserDto, error) {
+func (m *notFoundForReadOneStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
 	return &UserDto{
 		Email:     u.Email,
 		Username:  u.Username,
@@ -103,6 +141,14 @@ func (m *notFoundForReadOneStoreMock) Update(ctx context.Context, u *User) (*Use
 	}, nil
 }
 
-func (m *notFoundForReadOneStoreMock) ReadOne(ctx context.Context, c ...Lookup) (*UserDto, error) {
+func (m *notFoundForReadOneStoreMock) ReadOne(ctx context.Context, c ...Criteria) (*UserDto, error) {
 	return nil, errors.New("Not found")
+}
+
+func (m *notFoundForReadOneStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
+	return nil
+}
+
+func (m *notFoundForReadOneStoreMock) UpdatePassword(c context.Context, d *ChangePasswordDto) error {
+	return nil
 }

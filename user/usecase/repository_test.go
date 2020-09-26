@@ -41,9 +41,16 @@ func TestUserRepository(t *testing.T) {
 	erroredStore := &erroredUserStoreMock{}
 	t.Run("Change Password", func(t *testing.T) {
 		correctChangePassword := &ChangePasswordDto{
-			Email:       "test@test.com",
-			OldPassword: "Oldpassword1",
-			NewPassword: "Abcdefgh111.",
+			Email:            "test@test.com",
+			OldPassword:      "Oldpassword1",
+			NewPassword:      "Abcdefgh111.",
+			RepeatedPassword: "Abcdefgh111.",
+		}
+		notMatchingPasswords := &ChangePasswordDto{
+			Email:            "test@test.com",
+			OldPassword:      "Oldpassword1",
+			NewPassword:      "Abcdefgh111.",
+			RepeatedPassword: "Not matching",
 		}
 		badEmailChangePassword := &ChangePasswordDto{
 			Email:       "test@tes",
@@ -90,6 +97,16 @@ func TestUserRepository(t *testing.T) {
 				},
 				Dto:    correctChangePassword,
 				ExpErr: InvalidOldPasswordError,
+			},
+			{
+				Name:        "Not matching password",
+				Description: "It should error out of the validator. Not matching passwords",
+				Repo: &UserRepository{
+					Validator: &falseValidatorPasswordsNotMatching{},
+					Store:     erroredStore,
+				},
+				Dto:    notMatchingPasswords,
+				ExpErr: PasswordsDontMatchError,
 			},
 			{
 				Name:        "Not valid new password",
@@ -141,18 +158,28 @@ func TestUserRepository(t *testing.T) {
 	})
 	t.Run("Create User", func(t *testing.T) {
 		incorrectEmailDto := &CreateUserDto{
-			Email:     "non-existence",
-			Username:  "correct",
-			FirstName: "Bill",
-			LastName:  "Totte",
-			Password:  "12345678j.",
+			Email:            "non-existence",
+			Username:         "correct",
+			FirstName:        "Bill",
+			LastName:         "Totte",
+			Password:         "12345678j.",
+			RepeatedPassword: "12345678j.",
 		}
 		regularDto := &CreateUserDto{
-			Email:     "ada@lovelace.com",
-			Username:  "ada",
-			FirstName: "Ada",
-			LastName:  "Lovelace",
-			Password:  "12345678j.",
+			Email:            "ada@lovelace.com",
+			Username:         "ada",
+			FirstName:        "Ada",
+			LastName:         "Lovelace",
+			Password:         "12345678j.",
+			RepeatedPassword: "12345678j.",
+		}
+		notMatchingPasswordDto := &CreateUserDto{
+			Email:            "ada@lovelace.com",
+			Username:         "ada",
+			FirstName:        "Ada",
+			LastName:         "Lovelace",
+			Password:         "12345678j.",
+			RepeatedPassword: "I don't match",
 		}
 		incorrectPasswordDto := &CreateUserDto{
 			Email:     "good@good.com",
@@ -203,6 +230,16 @@ func TestUserRepository(t *testing.T) {
 				ContextCancel: true,
 				Dto:           regularDto,
 				ExpErr:        OperationCanceledError,
+			},
+			{
+				Name:        "Not matching passwords",
+				Description: "It should return an error from the Validator",
+				Repo: &UserRepository{
+					Validator: &falseValidatorPasswordsNotMatching{},
+					Store:     happyPathStore,
+				},
+				Dto:    notMatchingPasswordDto,
+				ExpErr: PasswordsDontMatchError,
 			},
 			{
 				Name:        "Correct create",
