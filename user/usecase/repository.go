@@ -1,3 +1,4 @@
+// This package defines all the regular use cases related to users
 package usecase
 
 import (
@@ -6,25 +7,6 @@ import (
 	"fmt"
 	"time"
 )
-
-// Common errors
-var (
-	EmailOrUsernameAlreadyInUseError = errors.New("The email or username passed are already in use")
-	UserNotFoundError                = errors.New("The user was not found in the DB")
-	MalformedEmailError              = errors.New("The email passed is invalid")
-	InvalidOldPasswordError          = errors.New("The old password passed doesn't match the one expected")
-	PasswordsDontMatchError          = errors.New("Password and RepeatedPassword don't match")
-	InvalidPasswordError             = errors.New("Password doesn't comply with expected structure")
-
-	OperationCanceledError = errors.New("The context of the operation was canceled")
-	CorruptedStoreError    = errors.New("The UserStore used is returning inconsistent results")
-)
-
-type Post struct {
-	Content   string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
 
 type UserDto struct {
 	Id        string
@@ -35,6 +17,12 @@ type UserDto struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Posts     []Post
+}
+
+type Post struct {
+	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type CreateUserDto struct {
@@ -80,11 +68,6 @@ type Criteria struct {
 	Operator LogicalOperator
 }
 
-type InvalidEmailError struct {
-	Err      error
-	BadEmail string
-}
-
 type Comparator int
 
 // EQ   ->  =
@@ -125,6 +108,26 @@ var basicSearchUserCriteria = []Criteria{
 	},
 }
 
+// Common errors
+var (
+	EmailOrUsernameAlreadyInUseError = errors.New(
+		"The email or username passed are already in use")
+	UserNotFoundError = errors.New(
+		"The user was not found in the DB")
+	MalformedEmailError = errors.New(
+		"The email passed is invalid")
+	UserPasswordNotMatchingError = errors.New(
+		"Seems like user/password data doesn't match with DB record")
+	PasswordsDontMatchError = errors.New(
+		"Password and RepeatedPassword don't match")
+	InvalidPasswordError = errors.New(
+		"Password doesn't comply with expected structure")
+	OperationCanceledError = errors.New(
+		"The context of the operation was canceled")
+	CorruptedStoreError = errors.New(
+		"The UserStore used is returning inconsistent results")
+)
+
 var unknownErrorInStore = "Found reported from store: %s and %s, but wrong dto returned"
 
 // Contract for the needs of the repository in terms of persistance:
@@ -157,15 +160,6 @@ type UserRepository struct {
 	Logger    Logger
 }
 
-func (u *InvalidEmailError) Error() string {
-	return fmt.Sprintf("The passed email: %v, has an error: %v \n",
-		u.BadEmail, u.Err)
-}
-
-func (u *InvalidEmailError) Unwrap() error {
-	return u.Err
-}
-
 // Changes password and persists. Returns an error on validation or
 // store's retrieval/persistence
 func (r *UserRepository) ChangePassword(ctx context.Context,
@@ -176,6 +170,11 @@ func (r *UserRepository) ChangePassword(ctx context.Context,
 		return err
 	}
 	defer cancel()
+	err = r.Validator.ValidateEmail(changePass.Email)
+	if err != nil {
+		return r.logErrorAndWrap(err,
+			"An error occurred when validating the user's email, ChangePassword")
+	}
 	toCheck := &CheckUserAndPasswordDto{
 		Email:    changePass.Email,
 		Username: changePass.Username,
@@ -202,6 +201,11 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 		return nil, err
 	}
 	defer cancel()
+	err = r.Validator.ValidateEmail(user.Email)
+	if err != nil {
+		return nil, r.logErrorAndWrap(err,
+			"An error occurred when validating the user's email, CreateUser")
+	}
 	found, err := r.Store.ReadOne(ctx, basicSearchUserCriteria...)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "An error occurred on the UserStore, CreateUser")
@@ -230,6 +234,11 @@ func (r *UserRepository) UpdateUser(ctx context.Context,
 		return nil, err
 	}
 	defer cancel()
+	err = r.Validator.ValidateEmail(user.Email)
+	if err != nil {
+		return nil, r.logErrorAndWrap(err,
+			"An error occurred when validating the email, UpdateUser")
+	}
 	found, err := r.Store.ReadOne(ctx, basicSearchUserCriteria...)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "An error occurred on the UserStore, UpdateUser")
