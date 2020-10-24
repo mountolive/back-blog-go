@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/mountolive/back-blog-go/storehelper"
 )
 
 // Mock logger
@@ -91,7 +89,7 @@ func (m *happyPathUserStoreMock) Update(ctx context.Context, u *UpdateUserDto) (
 	}, nil
 }
 
-func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, crit ...storehelper.Criteria) (*UserDto, error) {
+func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
 	var user *UserDto
 	if m.email != "" && m.username != "" {
 		user = &UserDto{
@@ -121,7 +119,7 @@ func (m *erroredUserStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*U
 	return nil, errors.New("Not found")
 }
 
-func (m *erroredUserStoreMock) ReadOne(ctx context.Context, crit ...storehelper.Criteria) (*UserDto, error) {
+func (m *erroredUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
 	return nil, UserNotFoundError
 }
 
@@ -146,7 +144,7 @@ func (m *oldPasswordNotMatchingStoreMock) Update(ctx context.Context, u *UpdateU
 	return nil, nil
 }
 
-func (m *oldPasswordNotMatchingStoreMock) ReadOne(ctx context.Context, c ...storehelper.Criteria) (*UserDto, error) {
+func (m *oldPasswordNotMatchingStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
 	invalid := "invalid"
 	return &UserDto{
 		Email:     invalid,
@@ -177,7 +175,7 @@ func (m *incorrectFoundForReadOneStoreMock) Update(ctx context.Context, u *Updat
 	return nil, nil
 }
 
-func (m *incorrectFoundForReadOneStoreMock) ReadOne(ctx context.Context, c ...storehelper.Criteria) (*UserDto, error) {
+func (m *incorrectFoundForReadOneStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
 	invalid := "invalid"
 	return &UserDto{
 		Email:     invalid,

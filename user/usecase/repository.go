@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/mountolive/back-blog-go/storehelper"
 )
 
 type UserDto struct {
@@ -50,20 +48,9 @@ type CheckUserAndPasswordDto struct {
 	Password string
 }
 
-var basicSearchUserCriteria = []storehelper.Criteria{
-	{
-		Lookups: []storehelper.Lookup{
-			{
-				FieldName:  "Email",
-				Comparator: storehelper.EQ,
-			},
-			{
-				FieldName:  "Username",
-				Comparator: storehelper.EQ,
-			},
-		},
-		Operator: storehelper.OR,
-	},
+type ByUsernameOrEmail struct {
+	Username,
+	Email string
 }
 
 // Common errors
@@ -94,7 +81,7 @@ type UserStore interface {
 	Create(context.Context, *CreateUserDto) (*UserDto, error)
 	Update(context.Context, *UpdateUserDto) (*UserDto, error)
 	UpdatePassword(context.Context, *ChangePasswordDto) error
-	ReadOne(context.Context, ...storehelper.Criteria) (*UserDto, error)
+	ReadOne(context.Context, *ByUsernameOrEmail) (*UserDto, error)
 	CheckIfCorrectPassword(context.Context, *CheckUserAndPasswordDto) error
 }
 
@@ -164,7 +151,7 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 		return nil, r.logErrorAndWrap(err,
 			"An error occurred when validating the user's email, CreateUser")
 	}
-	found, err := r.Store.ReadOne(ctx, basicSearchUserCriteria...)
+	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "An error occurred on the UserStore, CreateUser")
 	}
@@ -197,7 +184,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context,
 		return nil, r.logErrorAndWrap(err,
 			"An error occurred when validating the email, UpdateUser")
 	}
-	found, err := r.Store.ReadOne(ctx, basicSearchUserCriteria...)
+	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "An error occurred on the UserStore, UpdateUser")
 	}
