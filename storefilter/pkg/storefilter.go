@@ -1,5 +1,5 @@
 // Holds basic lookup operations to be used by any regular *Store
-package storehelper
+package storefilter
 
 // Single lookup condition
 type Lookup struct {

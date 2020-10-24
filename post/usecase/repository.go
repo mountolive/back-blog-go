@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -72,6 +73,9 @@ type PostRepository struct {
 	Sanitizer ContentSanitizer
 	Logger    Logger
 }
+
+// Common sentinel errors
+var OperationCanceledError = errors.New("The context of the operation was canceled")
 
 func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*PostDto, error) {
 	// TODO Implement
