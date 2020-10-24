@@ -13,6 +13,7 @@ type Tag struct {
 
 // Post entity representation
 type PostDto struct {
+	Id        string
 	Creator   string
 	Content   string
 	Tags      []Tag
@@ -29,6 +30,7 @@ type CreatePostDto struct {
 
 // Dto for handling update of Posts
 type UpdatePostDto struct {
+	Id      string
 	Content string
 	Tags    []string
 }
@@ -75,16 +77,19 @@ type PostRepository struct {
 }
 
 // Common sentinel errors
-var OperationCanceledError = errors.New("The context of the operation was canceled")
+var (
+	OperationCanceledError = errors.New("The context of the operation was canceled")
+	PostNotFoundError      = errors.New("The post requested was not found")
+)
 
 func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*PostDto, error) {
 	// TODO Implement
-	return nil, nil
+	return &PostDto{}, nil
 }
 
 func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto) (*PostDto, error) {
 	// TODO Implement
-	return nil, nil
+	return &PostDto{}, nil
 }
 
 func (r *PostRepository) FilterByTag(ctx context.Context, filter *ByTagDto) ([]*PostDto, error) {
