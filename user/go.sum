@@ -1,5 +1,8 @@
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/mountolive/back-blog-go v0.0.0-20201024151340-c150076f3c91 h1:aryDclDzAGISVRu8SoRRhFyMzujILeM4a5BgOFI9b30=
+github.com/mountolive/back-blog-go/storehelper v0.1.0 h1:os/GUlN16gTJa3IGNxgL/4XUCAdFy/ARkiLb7BH3Jj8=
+github.com/mountolive/back-blog-go/storehelper v0.1.0/go.mod h1:PoHdwOYfyEC4ArbrdaEP4fYHRxIVLWgqBaOTAuhSmq0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0 h1:4G4v2dO3VZwixGIRoQ5Lfboy6nUhCyYzaqnIAPPhYs4=
