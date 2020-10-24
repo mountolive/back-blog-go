@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/mountolive/back-blog-go/storehelper"
 )
 
 type UserDto struct {
@@ -14,13 +16,6 @@ type UserDto struct {
 	Username  string
 	FirstName string
 	LastName  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Posts     []Post
-}
-
-type Post struct {
-	Content   string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -55,56 +50,56 @@ type CheckUserAndPasswordDto struct {
 	Password string
 }
 
-// Single lookup condition
-type Lookup struct {
-	FieldName  string
-	Comparator Comparator
-}
+// // Single lookup condition
+// type Lookup struct {
+// 	FieldName  string
+// 	Comparator Comparator
+// }
+//
+// // Composed search criteria
+// // Unifies Lookups either by AND or by ORs
+// type Criteria struct {
+// 	Lookups  []Lookup
+// 	Operator LogicalOperator
+// }
+//
+// type Comparator int
+//
+// // EQ   ->  =
+// // NEQ  ->  !=
+// // LET  ->  <=
+// // LT   ->  <
+// // GET  ->  >=
+// // GT   ->  >
+// const (
+// 	EQ Comparator = iota
+// 	NEQ
+// 	LET
+// 	LT
+// 	GET
+// 	GT
+// )
+//
+// type LogicalOperator int
+//
+// const (
+// 	AND LogicalOperator = iota
+// 	OR
+// )
 
-// Composed search criteria
-// Unifies Lookups either by AND or by ORs
-type Criteria struct {
-	Lookups  []Lookup
-	Operator LogicalOperator
-}
-
-type Comparator int
-
-// EQ   ->  =
-// NEQ  ->  !=
-// LET  ->  <=
-// LT   ->  <
-// GET  ->  >=
-// GT   ->  >
-const (
-	EQ Comparator = iota
-	NEQ
-	LET
-	LT
-	GET
-	GT
-)
-
-type LogicalOperator int
-
-const (
-	AND LogicalOperator = iota
-	OR
-)
-
-var basicSearchUserCriteria = []Criteria{
+var basicSearchUserCriteria = []storehelper.Criteria{
 	{
-		Lookups: []Lookup{
+		Lookups: []storehelper.Lookup{
 			{
 				FieldName:  "Email",
-				Comparator: EQ,
+				Comparator: storehelper.EQ,
 			},
 			{
 				FieldName:  "Username",
-				Comparator: EQ,
+				Comparator: storehelper.EQ,
 			},
 		},
-		Operator: OR,
+		Operator: storehelper.OR,
 	},
 }
 
@@ -136,7 +131,7 @@ type UserStore interface {
 	Create(context.Context, *CreateUserDto) (*UserDto, error)
 	Update(context.Context, *UpdateUserDto) (*UserDto, error)
 	UpdatePassword(context.Context, *ChangePasswordDto) error
-	ReadOne(context.Context, ...Criteria) (*UserDto, error)
+	ReadOne(context.Context, ...storehelper.Criteria) (*UserDto, error)
 	CheckIfCorrectPassword(context.Context, *CheckUserAndPasswordDto) error
 }
 
