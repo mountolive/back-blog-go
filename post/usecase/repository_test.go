@@ -14,6 +14,7 @@ type createPostTestCase struct {
 	Description string
 	Dto         *CreatePostDto
 	ExpErr      error
+	Repo        *PostRepository
 	CtxCancel   bool
 }
 
@@ -34,42 +35,12 @@ type filterTestCase struct {
 	CtxCancel   bool
 }
 
-type mockStoreNotEmpty struct{}
-
-func (m *mockStoreNotEmpty) Create(ctx context.Context, p *CreatePostDto) (*PostDto, error) {
-	return &PostDto{Creator: p.Creator, Content: p.Content}, nil
-}
-
-func (m *mockStoreNotEmpty) Update(ctx context.Context, p *UpdatePostDto) (*PostDto, error) {
-	return &PostDto{Creator: "test", Content: p.Content}, nil
-}
-
-func (m *mockStoreNotEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*PostDto, error) {
-	return []*PostDto{&PostDto{Creator: "test", Content: "test", Tags: []Tag{Tag{p.Tag}}}}, nil
-}
-
-type mockStoreEmpty struct{}
-
-func (m *mockStoreEmpty) Create(ctx context.Context, p *CreatePostDto) (*PostDto, error) {
-	return nil, nil
-}
-
-func (m *mockStoreEmpty) Update(ctx context.Context, p *UpdatePostDto) (*PostDto, error) {
-	return nil, nil
-}
-
-func (m *mockStoreEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*PostDto, error) {
-	return nil, nil
-}
-
-type mockSanitizer struct{}
-
-func (m *mockSanitizer) SanitizeContent(ctx context.Context, content string) (string, error) {
-	return content, nil
-}
-
 func TestPostRepository(t *testing.T) {
-	repo := &PostRepository{Store: &mockStoreNotEmpty{}, Sanitizer: &mockSanitizer{}}
+	repo := &PostRepository{
+		Store:     &mockStoreNotEmpty{},
+		Sanitizer: &mockSanitizer{},
+		Checker:   &mockTrueChecker{},
+	}
 	genericError := "Got: %v; Expected: %v"
 	t.Run("CreatePost", func(t *testing.T) {
 		testDto := &CreatePostDto{"username", "content", []string{"tag1", "tag2"}}
@@ -78,6 +49,29 @@ func TestPostRepository(t *testing.T) {
 				Name:        "Proper Create Post",
 				Description: "It should return a *PostDto and no error",
 				Dto:         testDto,
+				Repo:        repo,
+			},
+			{
+				Name:        "User non-existent",
+				Description: "It should return a UserNotFoundError",
+				Dto:         testDto,
+				ExpErr:      UserNotFoundError,
+				Repo: &PostRepository{
+					Store:     &mockStoreNotEmpty{},
+					Sanitizer: &mockSanitizer{},
+					Checker:   &mockFalseChecker{},
+				},
+			},
+			{
+				Name:        "Checker errored",
+				Description: "It should return a UserCheckError",
+				Dto:         testDto,
+				ExpErr:      UserCheckError,
+				Repo: &PostRepository{
+					Store:     &mockStoreNotEmpty{},
+					Sanitizer: &mockSanitizer{},
+					Checker:   &mockErrorChecker{},
+				},
 			},
 			{
 				Name:        "Context Canceled",
@@ -85,6 +79,7 @@ func TestPostRepository(t *testing.T) {
 				Dto:         testDto,
 				ExpErr:      OperationCanceledError,
 				CtxCancel:   true,
+				Repo:        repo,
 			},
 		}
 		for _, tc := range testCases {
@@ -95,10 +90,11 @@ func TestPostRepository(t *testing.T) {
 				if tc.CtxCancel {
 					cancel()
 				}
-				post, err := repo.CreatePost(ctx, tc.Dto)
+				post, err := tc.Repo.CreatePost(ctx, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, post == nil, "Returned PostDto should be nil")
 					require.True(t, err != nil, "Err should be not nil")
+					require.True(t, errors.Is(err, tc.ExpErr), genericError, err, tc.ExpErr)
 				} else {
 					require.True(t, err == nil, "Err should be nil")
 					creator := tc.Dto.Creator
@@ -118,13 +114,6 @@ func TestPostRepository(t *testing.T) {
 				Description: "It should return a *PostDto and no error",
 				Dto:         testDto,
 				Repo:        repo,
-			},
-			{
-				Name:        "Post Not Found Update Post",
-				Description: "It should return a nil and a PostNotFoundError",
-				Dto:         testDto,
-				ExpErr:      PostNotFoundError,
-				Repo:        &PostRepository{Store: &mockStoreEmpty{}, Sanitizer: repo.Sanitizer},
 			},
 			{
 				Name:        "Context Canceled",
@@ -180,7 +169,13 @@ func TestPostRepository(t *testing.T) {
 				if tc.CtxCancel {
 					cancel()
 				}
-				posts, err := repo.FilterByDateRange(ctx, &ByDateRangeDto{tc.Dto.From, tc.Dto.To})
+				var posts []*PostDto
+				var err error
+				if tc.Dto.Tag == "" {
+					posts, err = repo.FilterByDateRange(ctx, &ByDateRangeDto{tc.Dto.From, tc.Dto.To})
+				} else {
+					posts, err = repo.FilterByTag(ctx, &ByTagDto{tc.Dto.Tag})
+				}
 				if tc.ExpErr != nil {
 					require.True(t, posts == nil, "Returned []*PostDto should be nil")
 					require.True(t, err != nil, "Err should be not nil")
