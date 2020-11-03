@@ -147,7 +147,7 @@ func (r *PostRepository) FilterByDateRange(ctx context.Context, filter *ByDateRa
 	defer cancel()
 	generalFilter := &GeneralFilter{}
 	generalFilter.From = filter.From
-	generalFilter.From = filter.To
+	generalFilter.To = filter.To
 	return r.Store.Filter(ctx, generalFilter)
 }
 
