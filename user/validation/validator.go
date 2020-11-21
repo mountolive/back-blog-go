@@ -12,8 +12,7 @@ const (
 	passwordRegex = `[A-Za-z0-9@!.,~#$%&*<>+"]{8,}$`
 )
 
-// Used to validate whether an email or a password
-// string are correct
+// Used to validate whether an email or a password string are correct
 // Used also to validate equality between 2 passwords' strings
 type Validator struct {
 	emailRegex,
@@ -31,6 +30,8 @@ var (
 
 // Creates a new email and password validator
 // that will use the passed email and password regexes
+// If any of the options is not used, it will fall-thru
+// to default regexes
 func NewValidator(regexes ...func(*Validator) error) (*Validator, error) {
 	validator := &Validator{}
 	for _, regexer := range regexes {

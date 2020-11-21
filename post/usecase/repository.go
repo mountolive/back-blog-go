@@ -65,7 +65,7 @@ type PostStore interface {
 // Basic contract intended to enforce sanitizing of content to avoid
 //   malicious code injection
 type ContentSanitizer interface {
-	SanitizeContent(context.Context, string) (string, error)
+	SanitizeContent(string) string
 }
 
 type Logger interface {
@@ -106,11 +106,7 @@ func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*
 	if !exists {
 		return nil, r.logErrorAndWrap(UserNotFoundError, fmt.Sprintf("User %s not found", post.Creator))
 	}
-	sanitized, err := r.Sanitizer.SanitizeContent(ctx, post.Content)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "An error occurred when sanitizing the content")
-	}
-	post.Content = sanitized
+	post.Content = r.Sanitizer.SanitizeContent(post.Content)
 	return r.Store.Create(ctx, post)
 }
 
@@ -120,11 +116,7 @@ func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto)
 		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
-	sanitized, err := r.Sanitizer.SanitizeContent(ctx, updated.Content)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "An error occurred when sanitizing the content")
-	}
-	updated.Content = sanitized
+	updated.Content = r.Sanitizer.SanitizeContent(updated.Content)
 	return r.Store.Update(ctx, updated)
 }
 

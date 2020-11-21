@@ -122,7 +122,7 @@ func TestValidator(t *testing.T) {
 		}
 		testCases := []validatePasswordCase{
 			{
-				Name:        "Invalid password, short",
+				Name:        "Invalid password short",
 				Description: "Returns an InvalidPasswordError for not conforming password: too short",
 				Password:    "bad1234",
 				ExpErr:      InvalidPasswordError,
