@@ -111,8 +111,7 @@ func (r *UserRepository) ChangePassword(ctx context.Context,
 	changePass *ChangePasswordDto) error {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		// Already wrapped by the helper function
-		return err
+		return r.logErrorAndWrap(err, "Context canceled")
 	}
 	defer cancel()
 	err = r.Validator.ValidateEmail(changePass.Email)
@@ -142,8 +141,7 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 	user *CreateUserDto) (*UserDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		// Already wrapped by the helper function
-		return nil, err
+		return nil, r.logErrorAndWrap(err, "Context canceled")
 	}
 	defer cancel()
 	err = r.Validator.ValidateEmail(user.Email)
@@ -175,8 +173,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context,
 	user *UpdateUserDto) (*UserDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		// Already wrapped by the helper function
-		return nil, err
+		return nil, r.logErrorAndWrap(err, "Context canceled")
 	}
 	defer cancel()
 	err = r.Validator.ValidateEmail(user.Email)

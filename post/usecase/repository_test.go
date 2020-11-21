@@ -36,10 +36,12 @@ type filterTestCase struct {
 }
 
 func TestPostRepository(t *testing.T) {
+	logger := &mockLogger{}
 	repo := &PostRepository{
 		Store:     &mockStoreNotEmpty{},
 		Sanitizer: &mockSanitizer{},
 		Checker:   &mockTrueChecker{},
+		Logger:    logger,
 	}
 	genericError := "Got: %v; Expected: %v"
 	t.Run("CreatePost", func(t *testing.T) {
@@ -60,6 +62,7 @@ func TestPostRepository(t *testing.T) {
 					Store:     &mockStoreNotEmpty{},
 					Sanitizer: &mockSanitizer{},
 					Checker:   &mockFalseChecker{},
+					Logger:    logger,
 				},
 			},
 			{
@@ -71,6 +74,7 @@ func TestPostRepository(t *testing.T) {
 					Store:     &mockStoreNotEmpty{},
 					Sanitizer: &mockSanitizer{},
 					Checker:   &mockErrorChecker{},
+					Logger:    logger,
 				},
 			},
 			{
@@ -146,6 +150,7 @@ func TestPostRepository(t *testing.T) {
 			})
 		}
 	})
+
 	testFilter := func(t *testing.T, testDto *GeneralFilter) {
 		testCases := []filterTestCase{
 			{

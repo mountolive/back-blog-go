@@ -96,19 +96,19 @@ var (
 func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
 	exists, err := r.Checker.CheckExistence(ctx, post.Creator)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", UserCheckError, err.Error())
+		return nil, r.logErrorAndWrap(UserCheckError, err.Error())
 	}
 	if !exists {
-		return nil, UserNotFoundError
+		return nil, r.logErrorAndWrap(UserNotFoundError, fmt.Sprintf("User %s not found", post.Creator))
 	}
 	sanitized, err := r.Sanitizer.SanitizeContent(ctx, post.Content)
 	if err != nil {
-		return nil, fmt.Errorf("An error occurred when sanitizing the content: %s", err.Error())
+		return nil, r.logErrorAndWrap(err, "An error occurred when sanitizing the content")
 	}
 	post.Content = sanitized
 	return r.Store.Create(ctx, post)
@@ -117,12 +117,12 @@ func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*
 func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
 	sanitized, err := r.Sanitizer.SanitizeContent(ctx, updated.Content)
 	if err != nil {
-		return nil, fmt.Errorf("An error occurred when sanitizing the content: %s", err.Error())
+		return nil, r.logErrorAndWrap(err, "An error occurred when sanitizing the content")
 	}
 	updated.Content = sanitized
 	return r.Store.Update(ctx, updated)
@@ -131,7 +131,7 @@ func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto)
 func (r *PostRepository) FilterByTag(ctx context.Context, filter *ByTagDto) ([]*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
 	generalFilter := &GeneralFilter{}
@@ -142,13 +142,18 @@ func (r *PostRepository) FilterByTag(ctx context.Context, filter *ByTagDto) ([]*
 func (r *PostRepository) FilterByDateRange(ctx context.Context, filter *ByDateRangeDto) ([]*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
-		return nil, err
+		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
 	generalFilter := &GeneralFilter{}
 	generalFilter.From = filter.From
 	generalFilter.To = filter.To
 	return r.Store.Filter(ctx, generalFilter)
+}
+
+func (r *PostRepository) logErrorAndWrap(err error, msg string) error {
+	r.Logger.LogError(err)
+	return fmt.Errorf("%s: %w \n", msg, err)
 }
 
 func checkContextAndRecreate(ctx context.Context) (context.Context, context.CancelFunc, error) {
