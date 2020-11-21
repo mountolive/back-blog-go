@@ -12,6 +12,7 @@ type Lookup struct {
 type Criteria struct {
 	Lookups  []Lookup
 	Operator LogicalOperator
+	OrderBy  OrderBy
 }
 
 type Comparator int
@@ -37,3 +38,15 @@ const (
 	AND LogicalOperator = iota
 	OR
 )
+
+type Order int
+
+const (
+	DESC Order = iota
+	ASC
+)
+
+type OrderBy struct {
+	FieldName string
+	Order     Order
+}

@@ -85,16 +85,33 @@ type UserStore interface {
 	CheckIfCorrectPassword(context.Context, *CheckUserAndPasswordDto) error
 }
 
+// Logger interface that handles the basic method for logging
+//   errors
 type Logger interface {
 	LogError(err error)
+}
+
+// Validator for email's strings
+type EmailValidator interface {
+	ValidateEmail(email string) error
+}
+
+// Validator for password's constrains
+type PasswordValidator interface {
+	ValidatePassword(password string) error
+}
+
+// Validates equality of passwords
+type MatchValidator interface {
+	ValidatePasswordMatch(password, repeatedPassword string) error
 }
 
 // Contract for the needs of the repository in terms of validation:
 //     Methods needed by each usecase for validating the user's data
 type UserValidator interface {
-	ValidateEmail(email string) error
-	ValidatePassword(password string) error
-	ValidatePasswordMatch(password, repeatedPassword string) error
+	EmailValidator
+	PasswordValidator
+	MatchValidator
 }
 
 // Basic repository struct. Store is used for persitance and Validator
