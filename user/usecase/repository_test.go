@@ -305,6 +305,7 @@ func TestUserRepository(t *testing.T) {
 			FirstName: "Barb",
 			LastName:  "Liskov",
 		}
+		testId := "1"
 		happyPathUserStore := &happyPathUserStoreMock{}
 		testCases := []updateUserCase{
 			{
@@ -349,7 +350,7 @@ func TestUserRepository(t *testing.T) {
 				if tc.ContextCancel {
 					cancel()
 				}
-				dto, err := tc.Repo.UpdateUser(ctx, tc.Dto)
+				dto, err := tc.Repo.UpdateUser(ctx, testId, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, errors.Is(err, tc.ExpErr), tc.Description)
 					return

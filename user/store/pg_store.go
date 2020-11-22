@@ -1,5 +1,5 @@
-// Defines the Storage details associated with an User for Postgres
-package pg_store
+// Defines the Storage details associated with an User
+package store
 
 import (
 	"context"
@@ -66,10 +66,11 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 		);
 
-		CREATE INDEX idx_email ON users (email);
-    CREATE INDEX idx_username ON users (username);
+		CREATE INDEX IF NOT EXISTS idx_email ON users (email);
+    CREATE INDEX IF NOT EXISTS idx_username ON users (username);
 
 		-- trigger automatic setting of timestamps
+		DROP TRIGGER IF EXISTS set_timestamp ON users;
 		CREATE TRIGGER set_timestamp
 		BEFORE UPDATE ON users
 		FOR EACH ROW
@@ -91,7 +92,7 @@ func (p *PgStore) Create(ctx context.Context,
 
 // Updates the data associated to an User
 // and returns the corresponding UserDto
-func (p *PgStore) Update(ctx context.Context,
+func (p *PgStore) Update(ctx context.Context, id string,
 	data *usecase.UpdateUserDto) (*usecase.UserDto, error) {
 	// TODO Implement
 	return nil, nil

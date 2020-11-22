@@ -80,7 +80,7 @@ func (m *happyPathUserStoreMock) Create(ctx context.Context, u *CreateUserDto) (
 	}, nil
 }
 
-func (m *happyPathUserStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
+func (m *happyPathUserStoreMock) Update(ctx context.Context, i string, u *UpdateUserDto) (*UserDto, error) {
 	return &UserDto{
 		Email:     u.Email,
 		Username:  u.Username,
@@ -115,7 +115,7 @@ func (m *erroredUserStoreMock) Create(ctx context.Context, u *CreateUserDto) (*U
 	return nil, errors.New("Not found")
 }
 
-func (m *erroredUserStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
+func (m *erroredUserStoreMock) Update(ctx context.Context, i string, u *UpdateUserDto) (*UserDto, error) {
 	return nil, errors.New("Not found")
 }
 
@@ -140,7 +140,7 @@ func (m *oldPasswordNotMatchingStoreMock) Create(ctx context.Context, u *CreateU
 	return nil, nil
 }
 
-func (m *oldPasswordNotMatchingStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
+func (m *oldPasswordNotMatchingStoreMock) Update(ctx context.Context, i string, u *UpdateUserDto) (*UserDto, error) {
 	return nil, nil
 }
 
@@ -171,7 +171,7 @@ func (m *incorrectFoundForReadOneStoreMock) Create(ctx context.Context, u *Creat
 	return nil, nil
 }
 
-func (m *incorrectFoundForReadOneStoreMock) Update(ctx context.Context, u *UpdateUserDto) (*UserDto, error) {
+func (m *incorrectFoundForReadOneStoreMock) Update(ctx context.Context, i string, u *UpdateUserDto) (*UserDto, error) {
 	return nil, nil
 }
 

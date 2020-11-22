@@ -79,7 +79,7 @@ const unknownErrorInStore = "Found reported from store: %s and %s, but wrong dto
 //    Defines which methods would be needed for each usecase
 type UserStore interface {
 	Create(context.Context, *CreateUserDto) (*UserDto, error)
-	Update(context.Context, *UpdateUserDto) (*UserDto, error)
+	Update(context.Context, string, *UpdateUserDto) (*UserDto, error)
 	UpdatePassword(context.Context, *ChangePasswordDto) error
 	ReadOne(context.Context, *ByUsernameOrEmail) (*UserDto, error)
 	CheckIfCorrectPassword(context.Context, *CheckUserAndPasswordDto) error
@@ -186,7 +186,7 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 }
 
 // Updates an user. Returns error on retrieval or actual persistence
-func (r *UserRepository) UpdateUser(ctx context.Context,
+func (r *UserRepository) UpdateUser(ctx context.Context, id string,
 	user *UpdateUserDto) (*UserDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
@@ -209,7 +209,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context,
 		}
 	}
 	r.mapMissingParams(user, found)
-	return r.Store.Update(ctx, user)
+	return r.Store.Update(ctx, id, user)
 }
 
 func (r *UserRepository) mapMissingParams(user *UpdateUserDto, found *UserDto) {
