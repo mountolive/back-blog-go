@@ -45,7 +45,7 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 	defer tx.Rollback(ctx)
 	// Function for automatic setting of timestamps
 	_, err = tx.Exec(ctx, `
-    CREATE EXTENSION citext;
+    CREATE EXTENSION IF NOT EXISTS citext;
 
     CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 		RETURNS TRIGGER AS $$

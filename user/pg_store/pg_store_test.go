@@ -53,6 +53,7 @@ func TestMain(m *testing.M) {
 			fmt.Sprintf("postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
 				testUser, testPass, hostPort, testUser),
 		)
+		fmt.Println(err)
 		return err
 	}
 	if err := pool.Retry(retryFunc); err != nil {
