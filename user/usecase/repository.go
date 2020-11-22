@@ -73,7 +73,7 @@ var (
 		"The UserStore used is returning inconsistent results")
 )
 
-var unknownErrorInStore = "Found reported from store: %s and %s, but wrong dto returned"
+const unknownErrorInStore = "Found reported from store: %s and %s, but wrong dto returned"
 
 // Contract for the needs of the repository in terms of persistance:
 //    Defines which methods would be needed for each usecase

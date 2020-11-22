@@ -1,2 +1,0 @@
-- Add mock for the new 2 methods of the UserStore (DONE)
-- Refactor errors so that it is a struct and likewise refactor Validator/Store interface and corresponding tests (DEPRECATED)
