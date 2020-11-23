@@ -34,7 +34,7 @@ func NewUserPgStore(ctx context.Context, url string) (*PgStore, error) {
 }
 
 func (p *PgStore) createUserTable(ctx context.Context) error {
-	err := checkContext(&ctx)
+	err := checkContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -46,6 +46,7 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 	// Function for automatic setting of timestamps
 	_, err = tx.Exec(ctx, `
     CREATE EXTENSION IF NOT EXISTS citext;
+		CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
     CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 		RETURNS TRIGGER AS $$
@@ -56,12 +57,12 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 		$$ LANGUAGE plpgsql;
     
 	  CREATE TABLE IF NOT EXISTS users (
-		  id         UUID NOT NULL PRIMARY KEY,
-			email      CITEXT NOT NULL UNIQUE,
-			username   VARCHAR(100) UNIQUE,
-			password   VARCHAR(200) NOT NULL,
-			first_name VARCHAR(100) NOT NULL,
-			last_name  VARCHAR(100) NOT NULL,
+		  id         UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+			email      CITEXT NOT NULL UNIQUE CHECK (email <> ''),
+			username   VARCHAR(100) UNIQUE CHECK (username <> ''),
+			password   VARCHAR(200) NOT NULL CHECK (password <> ''),
+			first_name VARCHAR(100) NOT NULL CHECK (first_name <> ''),
+			last_name  VARCHAR(100) NOT NULL CHECK (last_name <> ''),
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 		);
@@ -86,8 +87,44 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 // Creates an User and returns it (UserDto)
 func (p *PgStore) Create(ctx context.Context,
 	data *usecase.CreateUserDto) (*usecase.UserDto, error) {
-	// TODO Implement
-	return nil, nil
+	err := checkContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	columns := "(email, password, first_name, last_name"
+	params := "($1, $2, $3, $4"
+	closingColumn := ")"
+	closingParams := ")"
+	if data.Username != "" {
+		closingColumn = ", username)"
+		closingParams = ", $5)"
+	}
+	statement := fmt.Sprintf(`
+    INSERT INTO users %s
+		VALUES %s;
+  `, columns+closingColumn, params+closingParams)
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	_, err = tx.Exec(ctx, statement, data.Email, data.Password,
+		data.FirstName, data.LastName, data.Username)
+	if err != nil {
+		return nil, err
+	}
+	rawUser := tx.QueryRow(ctx, `
+    SELECT 
+		  id, email, first_name, 
+			last_name, username, created_at, updated_at
+		FROM users WHERE email = $1;
+	`, data.Email)
+	tx.Commit(ctx)
+	user := &usecase.UserDto{}
+	rawUser.Scan(&user.Id, &user.Email, &user.FirstName,
+		&user.LastName, &user.Username,
+		&user.CreatedAt, &user.UpdatedAt)
+	return user, nil
 }
 
 // Updates the data associated to an User
@@ -120,7 +157,7 @@ func (p *PgStore) CheckIfCorrectPassword(ctx context.Context,
 	return nil
 }
 
-func checkContext(ctx *context.Context) error {
+func checkContext(ctx context.Context) error {
 	// TODO Implement
 	return nil
 }

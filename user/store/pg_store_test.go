@@ -15,7 +15,7 @@ import (
 
 var store *PgStore
 
-func TestMain(m *testing.M) {
+func testMainWrapper(m *testing.M) int {
 	var err error
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -47,8 +47,15 @@ func TestMain(m *testing.M) {
 		},
 	}
 	container, err := pool.RunWithOptions(runOptions)
+	defer func() {
+		if err := pool.Purge(container); err != nil {
+			pool.RemoveContainerByName(containerName)
+			log.Fatalf("Error purging the container: %s\n", err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	retryFunc := func() error {
 		store, err = NewUserPgStore(ctx,
 			fmt.Sprintf("postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
@@ -62,17 +69,11 @@ func TestMain(m *testing.M) {
 		log.Fatalf("An error occurred initializing the db: %s\n", err)
 	}
 
-	exitCode := m.Run()
+	return m.Run()
+}
 
-	// Can't use defer with os.Exit()
-	if err := pool.Purge(container); err != nil {
-		pool.RemoveContainerByName(containerName)
-		log.Fatalf("Error purging the container: %s\n", err)
-	}
-
-	pool.RemoveContainerByName(containerName)
-	cancel()
-	os.Exit(exitCode)
+func TestMain(m *testing.M) {
+	os.Exit(testMainWrapper(m))
 }
 
 func TestPgStore(t *testing.T) {
@@ -128,6 +129,7 @@ func TestPgStore(t *testing.T) {
 		}
 		result, err := store.Update(ctx, createResult.Id, data)
 		require.True(t, err == nil, "An error was returned on update: %s", err)
+		require.True(t, result != nil, "No instance was returned from update")
 		require.True(t, result.Email == data.Email, genericErr, result.Email, data.Email)
 		require.True(t, result.Username == data.Username, genericErr, result.Username, data.Username)
 		require.True(t, result.FirstName == data.FirstName,
@@ -208,6 +210,7 @@ func TestPgStore(t *testing.T) {
 		}
 		result, err := store.ReadOne(ctx, firstChecker)
 		require.True(t, err == nil, "An error was returned on check for password: %s", err)
+		require.True(t, result != nil, "No instance was returned from read")
 		require.True(t, created.Id == result.Id, "User's Id was not properly created")
 		require.True(t, result.Email == created.Email, genericErr, result.Email, created.Email)
 		require.True(t, result.Username == created.Username, genericErr,
