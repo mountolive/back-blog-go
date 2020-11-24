@@ -49,36 +49,36 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 	// Function for automatic setting of timestamps
 	_, err = tx.Exec(ctx, `
     CREATE EXTENSION IF NOT EXISTS citext;
-		CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
     CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-		RETURNS TRIGGER AS $$
-		BEGIN
-		  NEW.updated_at = NOW();
-			RETURN NEW;
-		END;
-		$$ LANGUAGE plpgsql;
-    
-	  CREATE TABLE IF NOT EXISTS users (
-		  id         UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
-			email      CITEXT NOT NULL UNIQUE CHECK (email <> ''),
-			username   VARCHAR(100) UNIQUE CHECK (username <> ''),
-			password   VARCHAR(200) NOT NULL CHECK (password <> ''),
-			first_name VARCHAR(100) NOT NULL CHECK (first_name <> ''),
-			last_name  VARCHAR(100) NOT NULL CHECK (last_name <> ''),
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-		);
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+ 
+    CREATE TABLE IF NOT EXISTS users (
+      id         UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+      email      CITEXT NOT NULL UNIQUE CHECK (email <> ''),
+      username   VARCHAR(100) UNIQUE CHECK (username <> ''),
+      password   VARCHAR(200) NOT NULL CHECK (password <> ''),
+      first_name VARCHAR(100) NOT NULL CHECK (first_name <> ''),
+      last_name  VARCHAR(100) NOT NULL CHECK (last_name <> ''),
+      created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    );
 
-		CREATE INDEX IF NOT EXISTS idx_email ON users (email);
+    CREATE INDEX IF NOT EXISTS idx_email ON users (email);
     CREATE INDEX IF NOT EXISTS idx_username ON users (username);
 
-		-- trigger automatic setting of timestamps
-		DROP TRIGGER IF EXISTS set_timestamp ON users;
-		CREATE TRIGGER set_timestamp
-		BEFORE UPDATE ON users
-		FOR EACH ROW
-		EXECUTE PROCEDURE trigger_set_timestamp();
+    -- trigger automatic setting of timestamps
+    DROP TRIGGER IF EXISTS set_timestamp ON users;
+    CREATE TRIGGER set_timestamp
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE PROCEDURE trigger_set_timestamp();
 	`,
 	)
 	if err != nil {
@@ -105,7 +105,7 @@ func (p *PgStore) Create(ctx context.Context,
 	}
 	statement := fmt.Sprintf(`
     INSERT INTO users %s
-		VALUES %s;
+    VALUES %s;
   `, columns+closingColumn, params+closingParams)
 
 	tx, err := p.db.Begin(ctx)
@@ -122,9 +122,9 @@ func (p *PgStore) Create(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-
-	rawUser := userByEmailStatement(ctx, tx, data.Email)
 	tx.Commit(ctx)
+
+	rawUser := p.userByEmailStatement(ctx, data.Email)
 	user := &usecase.UserDto{}
 	rowToEntity(rawUser, user)
 	return user, nil
@@ -169,18 +169,19 @@ func (p *PgStore) Update(ctx context.Context, id string,
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
+
 	_, err = tx.Exec(ctx, fmt.Sprintf(`
     UPDATE users
-		SET %s
-		WHERE id = $%d;
+    SET %s
+    WHERE id = $%d;
   `, strings.Join(updates, ", "), level), params...)
 	if err != nil {
 		return nil, err
 	}
-
-	rawUser := userByIdStatement(ctx, tx, id)
-	user := &usecase.UserDto{}
 	tx.Commit(ctx)
+
+	rawUser := p.userByIdStatement(ctx, id)
+	user := &usecase.UserDto{}
 	rowToEntity(rawUser, user)
 	return user, nil
 }
@@ -189,7 +190,7 @@ func (p *PgStore) Update(ctx context.Context, id string,
 func (p *PgStore) UpdatePassword(ctx context.Context,
 	data *usecase.ChangePasswordDto) error {
 	// TODO Implement
-	return nil
+	return fmt.Errorf("Not implemented")
 }
 
 // Retrieves a single User from DB,
@@ -197,38 +198,37 @@ func (p *PgStore) UpdatePassword(ctx context.Context,
 func (p *PgStore) ReadOne(ctx context.Context,
 	query *usecase.ByUsernameOrEmail) (*usecase.UserDto, error) {
 	// TODO Implement
-	return nil, nil
+	return nil, fmt.Errorf("Not implemented")
 }
 
 // Checks if User's credentials are OK
 func (p *PgStore) CheckIfCorrectPassword(ctx context.Context,
 	data *usecase.CheckUserAndPasswordDto) error {
 	// TODO Implement
-	return nil
+	return fmt.Errorf("Not implemented")
+}
+
+func (p *PgStore) userByEmailStatement(ctx context.Context, email string) pgx.Row {
+	return p.db.QueryRow(ctx, `
+    SELECT
+      id, email, first_name,
+      last_name, username, created_at, updated_at
+    FROM users WHERE email = $1;
+	`, email)
+}
+
+func (p *PgStore) userByIdStatement(ctx context.Context, id string) pgx.Row {
+	return p.db.QueryRow(ctx, `
+    SELECT
+      id, email, first_name,
+      last_name, username, created_at, updated_at
+    FROM users WHERE id = $1;
+	`, id)
 }
 
 func checkContext(ctx context.Context) error {
 	// TODO Implement
 	return nil
-}
-
-func userByEmailStatement(ctx context.Context,
-	tx pgx.Tx, email string) pgx.Row {
-	return tx.QueryRow(ctx, `
-    SELECT
-		  id, email, first_name,
-			last_name, username, created_at, updated_at
-		FROM users WHERE email = $1;
-	`, email)
-}
-
-func userByIdStatement(ctx context.Context, tx pgx.Tx, id string) pgx.Row {
-	return tx.QueryRow(ctx, `
-    SELECT
-		  id, email, first_name,
-			last_name, username, created_at, updated_at
-		FROM users WHERE id = $1;
-	`, id)
 }
 
 func rowToEntity(rawUser pgx.Row, user *usecase.UserDto) {

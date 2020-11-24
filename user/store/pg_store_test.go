@@ -72,6 +72,13 @@ func testMainWrapper(m *testing.M) int {
 	return m.Run()
 }
 
+func getCount(s *PgStore) int64 {
+	var count int64
+	row := s.db.QueryRow(context.Background(), "SELECT COUNT(*) FROM users")
+	row.Scan(&count)
+	return count
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(testMainWrapper(m))
 }
@@ -103,6 +110,7 @@ func TestPgStore(t *testing.T) {
 		require.True(t, result.LastName == data.LastName, genericErr, result.LastName, data.LastName)
 		require.False(t, result.CreatedAt.IsZero(), "CreatedAt should have been set")
 		require.False(t, result.UpdatedAt.IsZero(), "UpdatedAt should have been set")
+		require.True(t, getCount(store) == 1, "Number of rows in db should be 1")
 	})
 
 	t.Run("Update", func(t *testing.T) {
@@ -126,6 +134,8 @@ func TestPgStore(t *testing.T) {
 			FirstName: "this",
 			LastName:  "is it",
 		}
+		rowCount := getCount(store)
+		require.True(t, rowCount >= 1, "Number of rows in db should be 1 or more %d", rowCount)
 		result, err := store.Update(ctx, createResult.Id, data)
 		require.True(t, err == nil, "An error was returned on update: %s", err)
 		require.True(t, result != nil, "No instance was returned from update")
@@ -137,6 +147,8 @@ func TestPgStore(t *testing.T) {
 		require.False(t, result.CreatedAt.IsZero(), "CreatedAt should have been set")
 		require.False(t, result.UpdatedAt.IsZero(), "UpdatedAt should have been set")
 		require.True(t, result.CreatedAt.Before(result.UpdatedAt), "UpdatedAt date was not updated")
+		rowCount = getCount(store)
+		require.True(t, rowCount >= 1, "Number of rows in db should be 1 or more %d", rowCount)
 	})
 
 	t.Run("UpdatePassword CheckIfCorrectPassword", func(t *testing.T) {
@@ -153,6 +165,9 @@ func TestPgStore(t *testing.T) {
 		require.True(t, err == nil, "An error was returned on create: %s", err)
 		require.True(t, createResult != nil, "No instance was returned from create")
 		require.True(t, createResult.Id != "", "User's Id was not properly created")
+
+		rowCount := getCount(store)
+		require.True(t, rowCount >= 1, "Number of rows in db should be 1 or more %d", rowCount)
 
 		data := &usecase.ChangePasswordDto{
 			Email:            "test_password@gmail.com",
@@ -203,6 +218,9 @@ func TestPgStore(t *testing.T) {
 		require.True(t, err == nil, "An error was returned on create: %s", err)
 		require.True(t, created != nil, "No instance was returned from create")
 		require.True(t, created.Id != "", "User's Id was not properly created")
+
+		rowCount := getCount(store)
+		require.True(t, rowCount >= 1, "Number of rows in db should be 1 or more %d", rowCount)
 
 		firstChecker := &usecase.ByUsernameOrEmail{
 			Email: "test_read@gmail.com",
