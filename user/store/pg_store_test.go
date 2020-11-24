@@ -80,7 +80,6 @@ func TestPgStore(t *testing.T) {
 	genericErr := "Got: %s \n Expected: %s"
 	t.Run("Canary", func(t *testing.T) {
 		var _ usecase.UserStore = &PgStore{}
-		fmt.Println(store)
 	})
 
 	t.Run("Create", func(t *testing.T) {

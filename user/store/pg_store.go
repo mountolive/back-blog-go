@@ -5,9 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/mountolive/back-blog-go/user/usecase"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -91,6 +94,7 @@ func (p *PgStore) Create(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+
 	columns := "(email, password, first_name, last_name"
 	params := "($1, $2, $3, $4"
 	closingColumn := ")"
@@ -103,27 +107,26 @@ func (p *PgStore) Create(ctx context.Context,
     INSERT INTO users %s
 		VALUES %s;
   `, columns+closingColumn, params+closingParams)
+
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	_, err = tx.Exec(ctx, statement, data.Email, data.Password,
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(data.Password), 10)
+	if err != nil {
+		return nil, err
+	}
+	_, err = tx.Exec(ctx, statement, data.Email, string(hashedPass),
 		data.FirstName, data.LastName, data.Username)
 	if err != nil {
 		return nil, err
 	}
-	rawUser := tx.QueryRow(ctx, `
-    SELECT 
-		  id, email, first_name, 
-			last_name, username, created_at, updated_at
-		FROM users WHERE email = $1;
-	`, data.Email)
+
+	rawUser := userByEmailStatement(ctx, tx, data.Email)
 	tx.Commit(ctx)
 	user := &usecase.UserDto{}
-	rawUser.Scan(&user.Id, &user.Email, &user.FirstName,
-		&user.LastName, &user.Username,
-		&user.CreatedAt, &user.UpdatedAt)
+	rowToEntity(rawUser, user)
 	return user, nil
 }
 
@@ -131,8 +134,55 @@ func (p *PgStore) Create(ctx context.Context,
 // and returns the corresponding UserDto
 func (p *PgStore) Update(ctx context.Context, id string,
 	data *usecase.UpdateUserDto) (*usecase.UserDto, error) {
-	// TODO Implement
-	return nil, nil
+	err := checkContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	updates := []string{}
+	level := 1
+	params := make([]interface{}, 0)
+
+	if data.Email != "" {
+		updates = append(updates, fmt.Sprintf("email = $%d", level))
+		params = append(params, data.Email)
+		level += 1
+	}
+	if data.Username != "" {
+		updates = append(updates, fmt.Sprintf("username = $%d", level))
+		params = append(params, data.Username)
+		level += 1
+	}
+	if data.FirstName != "" {
+		updates = append(updates, fmt.Sprintf("first_name = $%d", level))
+		params = append(params, data.FirstName)
+		level += 1
+	}
+	if data.LastName != "" {
+		updates = append(updates, fmt.Sprintf("last_name = $%d", level))
+		params = append(params, data.LastName)
+		level += 1
+	}
+	params = append(params, id)
+
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	_, err = tx.Exec(ctx, fmt.Sprintf(`
+    UPDATE users
+		SET %s
+		WHERE id = $%d;
+  `, strings.Join(updates, ", "), level), params...)
+	if err != nil {
+		return nil, err
+	}
+
+	rawUser := userByIdStatement(ctx, tx, id)
+	user := &usecase.UserDto{}
+	tx.Commit(ctx)
+	rowToEntity(rawUser, user)
+	return user, nil
 }
 
 // Updates a given User's Password
@@ -160,6 +210,31 @@ func (p *PgStore) CheckIfCorrectPassword(ctx context.Context,
 func checkContext(ctx context.Context) error {
 	// TODO Implement
 	return nil
+}
+
+func userByEmailStatement(ctx context.Context,
+	tx pgx.Tx, email string) pgx.Row {
+	return tx.QueryRow(ctx, `
+    SELECT
+		  id, email, first_name,
+			last_name, username, created_at, updated_at
+		FROM users WHERE email = $1;
+	`, email)
+}
+
+func userByIdStatement(ctx context.Context, tx pgx.Tx, id string) pgx.Row {
+	return tx.QueryRow(ctx, `
+    SELECT
+		  id, email, first_name,
+			last_name, username, created_at, updated_at
+		FROM users WHERE id = $1;
+	`, id)
+}
+
+func rowToEntity(rawUser pgx.Row, user *usecase.UserDto) {
+	rawUser.Scan(&user.Id, &user.Email, &user.FirstName,
+		&user.LastName, &user.Username,
+		&user.CreatedAt, &user.UpdatedAt)
 }
 
 func wrapErrorInfo(err error, msg string, store string) error {
