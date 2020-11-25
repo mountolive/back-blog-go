@@ -179,9 +179,11 @@ func (p *PgStore) UpdatePassword(ctx context.Context,
 // Retrieves a single User from DB,
 // through its Username or Email
 func (p *PgStore) ReadOne(ctx context.Context,
-	query *usecase.ByUsernameOrEmail) (*usecase.UserDto, error) {
-	// TODO Implement
-	return nil, fmt.Errorf("Not implemented")
+	query *usecase.ByUsernameOrEmail) *usecase.UserDto {
+	if query.Email == "" {
+		return p.userByUsername(ctx, query.Username)
+	}
+	return p.userByEmail(ctx, query.Email)
 }
 
 // Checks if User's credentials are OK

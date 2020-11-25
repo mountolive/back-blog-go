@@ -89,7 +89,7 @@ func (m *happyPathUserStoreMock) Update(ctx context.Context, i string, u *Update
 	}, nil
 }
 
-func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
+func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) *UserDto {
 	var user *UserDto
 	if m.email != "" && m.username != "" {
 		user = &UserDto{
@@ -97,7 +97,7 @@ func (m *happyPathUserStoreMock) ReadOne(ctx context.Context, filter *ByUsername
 			Username: m.username,
 		}
 	}
-	return user, nil
+	return user
 }
 
 func (m *happyPathUserStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
@@ -119,8 +119,8 @@ func (m *erroredUserStoreMock) Update(ctx context.Context, i string, u *UpdateUs
 	return nil, errors.New("Not found")
 }
 
-func (m *erroredUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
-	return nil, UserNotFoundError
+func (m *erroredUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) *UserDto {
+	return nil
 }
 
 func (m *erroredUserStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
@@ -144,15 +144,14 @@ func (m *oldPasswordNotMatchingStoreMock) Update(ctx context.Context, i string, 
 	return nil, nil
 }
 
-func (m *oldPasswordNotMatchingStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
+func (m *oldPasswordNotMatchingStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) *UserDto {
 	invalid := "invalid"
 	return &UserDto{
 		Email:     invalid,
 		Username:  invalid,
 		FirstName: invalid,
 		LastName:  invalid,
-	}, nil
-
+	}
 }
 
 func (m *oldPasswordNotMatchingStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
@@ -175,15 +174,14 @@ func (m *incorrectFoundForReadOneStoreMock) Update(ctx context.Context, i string
 	return nil, nil
 }
 
-func (m *incorrectFoundForReadOneStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) (*UserDto, error) {
+func (m *incorrectFoundForReadOneStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOrEmail) *UserDto {
 	invalid := "invalid"
 	return &UserDto{
 		Email:     invalid,
 		Username:  invalid,
 		FirstName: invalid,
 		LastName:  invalid,
-	}, nil
-
+	}
 }
 
 func (m *incorrectFoundForReadOneStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {

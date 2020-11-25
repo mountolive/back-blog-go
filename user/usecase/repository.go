@@ -81,7 +81,7 @@ type UserStore interface {
 	Create(context.Context, *CreateUserDto) (*UserDto, error)
 	Update(context.Context, string, *UpdateUserDto) (*UserDto, error)
 	UpdatePassword(context.Context, *ChangePasswordDto) error
-	ReadOne(context.Context, *ByUsernameOrEmail) (*UserDto, error)
+	ReadOne(context.Context, *ByUsernameOrEmail) *UserDto
 	CheckIfCorrectPassword(context.Context, *CheckUserAndPasswordDto) error
 }
 
@@ -166,10 +166,7 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 		return nil, r.logErrorAndWrap(err,
 			"An error occurred when validating the user's email, CreateUser")
 	}
-	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "An error occurred on the UserStore, CreateUser")
-	}
+	found := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if found != nil {
 		if found.Username != user.Username && found.Email != user.Email {
 			return nil, r.logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
@@ -198,9 +195,9 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id string,
 		return nil, r.logErrorAndWrap(err,
 			"An error occurred when validating the email, UpdateUser")
 	}
-	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
+	found := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if err != nil {
-		return nil, r.logErrorAndWrap(err, "An error occurred on the UserStore, UpdateUser")
+		return nil, r.logErrorAndWrap(UserNotFoundError, "An error occurred on the UserStore, UpdateUser")
 	}
 	if found != nil {
 		if found.Username != user.Username && found.Email != user.Email {
