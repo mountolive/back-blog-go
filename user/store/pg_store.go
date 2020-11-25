@@ -122,32 +122,7 @@ func (p *PgStore) Create(ctx context.Context,
 // and returns the corresponding UserDto
 func (p *PgStore) Update(ctx context.Context, id string,
 	data *usecase.UpdateUserDto) (*usecase.UserDto, error) {
-	updates := []string{}
-	level := 1
-	params := make([]interface{}, 0)
-
-	if data.Email != "" {
-		updates = append(updates, fmt.Sprintf("email = $%d", level))
-		params = append(params, data.Email)
-		level += 1
-	}
-	if data.Username != "" {
-		updates = append(updates, fmt.Sprintf("username = $%d", level))
-		params = append(params, data.Username)
-		level += 1
-	}
-	if data.FirstName != "" {
-		updates = append(updates, fmt.Sprintf("first_name = $%d", level))
-		params = append(params, data.FirstName)
-		level += 1
-	}
-	if data.LastName != "" {
-		updates = append(updates, fmt.Sprintf("last_name = $%d", level))
-		params = append(params, data.LastName)
-		level += 1
-	}
-	params = append(params, id)
-
+	updates, params := buildColumsAndValuesSlices(data, id)
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -158,7 +133,7 @@ func (p *PgStore) Update(ctx context.Context, id string,
     UPDATE users
     SET %s
     WHERE id = $%d;
-  `, strings.Join(updates, ", "), level), params...)
+  `, strings.Join(updates, ", "), len(params)), params...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +145,12 @@ func (p *PgStore) Update(ctx context.Context, id string,
 // Updates a given User's Password
 func (p *PgStore) UpdatePassword(ctx context.Context,
 	data *usecase.ChangePasswordDto) error {
-	err := p.checkPasswordMatch(ctx, data.Email, data.OldPassword, p.userByEmail)
+	checker := &usecase.CheckUserAndPasswordDto{
+		Email:    data.Email,
+		Username: data.Username,
+		Password: data.OldPassword,
+	}
+	err := p.CheckIfCorrectPassword(ctx, checker)
 	if err != nil {
 		return err
 	}
@@ -187,9 +167,9 @@ func (p *PgStore) UpdatePassword(ctx context.Context,
 	statement := `
       UPDATE users
       SET password = $1
-      WHERE email = $2;
+      WHERE (email = $2 OR username = $3);
   `
-	_, err = tx.Exec(ctx, statement, newPassHashed, data.Email)
+	_, err = tx.Exec(ctx, statement, newPassHashed, data.Email, data.Username)
 	if err != nil {
 		return err
 	}
@@ -220,12 +200,12 @@ func (p *PgStore) checkPasswordMatch(ctx context.Context,
 	retrieve func(context.Context, string) *usecase.UserDto) error {
 	user := retrieve(ctx, emailOrUsername)
 	if user.Id == "" {
-		return fmt.Errorf("User was not found")
+		return fmt.Errorf("User was not found: %s", emailOrUsername)
 	}
 
 	var hashedPassword []byte
 	p.db.QueryRow(ctx,
-		"SELECT password FROM users WHERE email = $1 OR username = $2",
+		"SELECT password FROM users WHERE (email = $1 OR username = $2)",
 		emailOrUsername, emailOrUsername).Scan(&hashedPassword)
 
 	return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
@@ -269,6 +249,36 @@ func rowToEntity(rawUser pgx.Row, user *usecase.UserDto) {
 	rawUser.Scan(&user.Id, &user.Email, &user.FirstName,
 		&user.LastName, &user.Username,
 		&user.CreatedAt, &user.UpdatedAt)
+}
+
+func buildColumsAndValuesSlices(data *usecase.UpdateUserDto,
+	id string) ([]string, []interface{}) {
+	updates := []string{}
+	level := 1
+	params := make([]interface{}, 0)
+
+	if data.Email != "" {
+		updates = append(updates, fmt.Sprintf("email = $%d", level))
+		params = append(params, data.Email)
+		level += 1
+	}
+	if data.Username != "" {
+		updates = append(updates, fmt.Sprintf("username = $%d", level))
+		params = append(params, data.Username)
+		level += 1
+	}
+	if data.FirstName != "" {
+		updates = append(updates, fmt.Sprintf("first_name = $%d", level))
+		params = append(params, data.FirstName)
+		level += 1
+	}
+	if data.LastName != "" {
+		updates = append(updates, fmt.Sprintf("last_name = $%d", level))
+		params = append(params, data.LastName)
+		level += 1
+	}
+	params = append(params, id)
+	return updates, params
 }
 
 func wrapErrorInfo(err error, msg string, store string) error {

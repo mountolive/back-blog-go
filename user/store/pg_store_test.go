@@ -169,13 +169,13 @@ func TestPgStore(t *testing.T) {
 		rowCount := getCount(store)
 		require.True(t, rowCount >= 1, "Number of rows in db should be 1 or more %d", rowCount)
 
-		data := &usecase.ChangePasswordDto{
+		first := &usecase.ChangePasswordDto{
 			Email:            "test_password@gmail.com",
 			NewPassword:      "new123456",
 			RepeatedPassword: "new123456",
 			OldPassword:      "test123456",
 		}
-		err = store.UpdatePassword(ctx, data)
+		err = store.UpdatePassword(ctx, first)
 		require.True(t, err == nil, "An error was returned on update password, first: %s", err)
 
 		firstChecker := &usecase.CheckUserAndPasswordDto{
@@ -186,13 +186,13 @@ func TestPgStore(t *testing.T) {
 		err = store.CheckIfCorrectPassword(ctx, firstChecker)
 		require.True(t, err == nil, "An error was returned on first check for password: %s", err)
 
-		data = &usecase.ChangePasswordDto{
+		second := &usecase.ChangePasswordDto{
 			Username:         "test_password",
 			NewPassword:      "evenNewer123456",
 			RepeatedPassword: "evenNewer123456",
 			OldPassword:      "new123456",
 		}
-		err = store.UpdatePassword(ctx, data)
+		err = store.UpdatePassword(ctx, second)
 		require.True(t, err == nil, "An error was returned on update password, second: %s", err)
 
 		secondChecker := &usecase.CheckUserAndPasswordDto{
