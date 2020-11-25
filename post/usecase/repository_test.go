@@ -177,9 +177,9 @@ func TestPostRepository(t *testing.T) {
 				var posts []*PostDto
 				var err error
 				if tc.Dto.Tag == "" {
-					posts, err = repo.FilterByDateRange(ctx, &ByDateRangeDto{tc.Dto.From, tc.Dto.To})
+					posts, err = repo.FilterByDateRange(ctx, &ByDateRangeDto{tc.Dto.From, tc.Dto.To}, 0, 1)
 				} else {
-					posts, err = repo.FilterByTag(ctx, &ByTagDto{tc.Dto.Tag})
+					posts, err = repo.FilterByTag(ctx, &ByTagDto{tc.Dto.Tag}, 0, 1)
 				}
 				if tc.ExpErr != nil {
 					require.True(t, posts == nil, "Returned []*PostDto should be nil")

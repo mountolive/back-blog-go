@@ -43,8 +43,8 @@ func (m *mockStoreEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*PostD
 
 type mockSanitizer struct{}
 
-func (m *mockSanitizer) SanitizeContent(ctx context.Context, content string) (string, error) {
-	return content, nil
+func (m *mockSanitizer) SanitizeContent(content string) string {
+	return content
 }
 
 type mockFalseChecker struct{}

@@ -52,6 +52,8 @@ type ByDateRangeDto struct {
 type GeneralFilter struct {
 	ByTagDto
 	ByDateRangeDto
+	Page     int
+	PageSize int
 }
 
 // Contract for the needs of a post's repo in terms of persistence
@@ -120,24 +122,26 @@ func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto)
 	return r.Store.Update(ctx, updated)
 }
 
-func (r *PostRepository) FilterByTag(ctx context.Context, filter *ByTagDto) ([]*PostDto, error) {
+func (r *PostRepository) FilterByTag(ctx context.Context,
+	filter *ByTagDto, page, pageSize int) ([]*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
-	generalFilter := &GeneralFilter{}
+	generalFilter := &GeneralFilter{Page: page, PageSize: pageSize}
 	generalFilter.Tag = filter.Tag
 	return r.Store.Filter(ctx, generalFilter)
 }
 
-func (r *PostRepository) FilterByDateRange(ctx context.Context, filter *ByDateRangeDto) ([]*PostDto, error) {
+func (r *PostRepository) FilterByDateRange(ctx context.Context,
+	filter *ByDateRangeDto, page, pageSize int) ([]*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
-	generalFilter := &GeneralFilter{}
+	generalFilter := &GeneralFilter{Page: page, PageSize: pageSize}
 	generalFilter.From = filter.From
 	generalFilter.To = filter.To
 	return r.Store.Filter(ctx, generalFilter)
