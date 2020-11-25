@@ -37,10 +37,6 @@ func NewUserPgStore(ctx context.Context, url string) (*PgStore, error) {
 }
 
 func (p *PgStore) createUserTable(ctx context.Context) error {
-	err := checkContext(ctx)
-	if err != nil {
-		return err
-	}
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -58,7 +54,7 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
- 
+
     CREATE TABLE IF NOT EXISTS users (
       id         UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
       email      CITEXT NOT NULL UNIQUE CHECK (email <> ''),
@@ -90,11 +86,6 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 // Creates an User and returns it (UserDto)
 func (p *PgStore) Create(ctx context.Context,
 	data *usecase.CreateUserDto) (*usecase.UserDto, error) {
-	err := checkContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	columns := "(email, password, first_name, last_name"
 	params := "($1, $2, $3, $4"
 	closingColumn := ")"
@@ -115,7 +106,7 @@ func (p *PgStore) Create(ctx context.Context,
 	defer tx.Rollback(ctx)
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(data.Password), 10)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error while trying to hash password: %s", err)
 	}
 	_, err = tx.Exec(ctx, statement, data.Email, string(hashedPass),
 		data.FirstName, data.LastName, data.Username)
@@ -124,20 +115,13 @@ func (p *PgStore) Create(ctx context.Context,
 	}
 	tx.Commit(ctx)
 
-	rawUser := p.userByEmailStatement(ctx, data.Email)
-	user := &usecase.UserDto{}
-	rowToEntity(rawUser, user)
-	return user, nil
+	return p.userByEmail(ctx, data.Email), nil
 }
 
 // Updates the data associated to an User
 // and returns the corresponding UserDto
 func (p *PgStore) Update(ctx context.Context, id string,
 	data *usecase.UpdateUserDto) (*usecase.UserDto, error) {
-	err := checkContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 	updates := []string{}
 	level := 1
 	params := make([]interface{}, 0)
@@ -180,17 +164,36 @@ func (p *PgStore) Update(ctx context.Context, id string,
 	}
 	tx.Commit(ctx)
 
-	rawUser := p.userByIdStatement(ctx, id)
-	user := &usecase.UserDto{}
-	rowToEntity(rawUser, user)
-	return user, nil
+	return p.userById(ctx, id), nil
 }
 
 // Updates a given User's Password
 func (p *PgStore) UpdatePassword(ctx context.Context,
 	data *usecase.ChangePasswordDto) error {
-	// TODO Implement
-	return fmt.Errorf("Not implemented")
+	err := p.checkPasswordMatch(ctx, data.Email, data.OldPassword, p.userByEmail)
+	if err != nil {
+		return err
+	}
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	newPassHashed, err := bcrypt.GenerateFromPassword([]byte(data.NewPassword), 10)
+	if err != nil {
+		return err
+	}
+	statement := `
+      UPDATE users
+      SET password = $1
+      WHERE email = $2;
+  `
+	_, err = tx.Exec(ctx, statement, newPassHashed, data.Email)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // Retrieves a single User from DB,
@@ -204,31 +207,62 @@ func (p *PgStore) ReadOne(ctx context.Context,
 // Checks if User's credentials are OK
 func (p *PgStore) CheckIfCorrectPassword(ctx context.Context,
 	data *usecase.CheckUserAndPasswordDto) error {
-	// TODO Implement
-	return fmt.Errorf("Not implemented")
+	if data.Email == "" {
+		return p.checkPasswordMatch(ctx, data.Username,
+			data.Password, p.userByUsername)
+	}
+	return p.checkPasswordMatch(ctx, data.Email,
+		data.Password, p.userByEmail)
 }
 
-func (p *PgStore) userByEmailStatement(ctx context.Context, email string) pgx.Row {
-	return p.db.QueryRow(ctx, `
+func (p *PgStore) checkPasswordMatch(ctx context.Context,
+	emailOrUsername, password string,
+	retrieve func(context.Context, string) *usecase.UserDto) error {
+	user := retrieve(ctx, emailOrUsername)
+	if user.Id == "" {
+		return fmt.Errorf("User was not found")
+	}
+
+	var hashedPassword []byte
+	p.db.QueryRow(ctx,
+		"SELECT password FROM users WHERE email = $1 OR username = $2",
+		emailOrUsername, emailOrUsername).Scan(&hashedPassword)
+
+	return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+}
+
+func (p *PgStore) userByEmail(ctx context.Context,
+	email string) *usecase.UserDto {
+	rawUser := p.db.QueryRow(ctx, p.statementByField("email"), email)
+	user := &usecase.UserDto{}
+	rowToEntity(rawUser, user)
+	return user
+}
+
+func (p *PgStore) userByUsername(ctx context.Context,
+	username string) *usecase.UserDto {
+	rawUser := p.db.QueryRow(ctx, p.statementByField("username"), username)
+	user := &usecase.UserDto{}
+	rowToEntity(rawUser, user)
+	return user
+
+}
+
+func (p *PgStore) userById(ctx context.Context,
+	id string) *usecase.UserDto {
+	rawUser := p.db.QueryRow(ctx, p.statementByField("id"), id)
+	user := &usecase.UserDto{}
+	rowToEntity(rawUser, user)
+	return user
+}
+
+func (p *PgStore) statementByField(filter string) string {
+	return fmt.Sprintf(`
     SELECT
       id, email, first_name,
       last_name, username, created_at, updated_at
-    FROM users WHERE email = $1;
-	`, email)
-}
-
-func (p *PgStore) userByIdStatement(ctx context.Context, id string) pgx.Row {
-	return p.db.QueryRow(ctx, `
-    SELECT
-      id, email, first_name,
-      last_name, username, created_at, updated_at
-    FROM users WHERE id = $1;
-	`, id)
-}
-
-func checkContext(ctx context.Context) error {
-	// TODO Implement
-	return nil
+    FROM users WHERE %s = $1;
+	`, filter)
 }
 
 func rowToEntity(rawUser pgx.Row, user *usecase.UserDto) {

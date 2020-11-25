@@ -176,7 +176,7 @@ func TestPgStore(t *testing.T) {
 			OldPassword:      "test123456",
 		}
 		err = store.UpdatePassword(ctx, data)
-		require.True(t, err == nil, "An error was returned on update password: %s", err)
+		require.True(t, err == nil, "An error was returned on update password, first: %s", err)
 
 		firstChecker := &usecase.CheckUserAndPasswordDto{
 			Email:    "test_password@gmail.com",
@@ -193,7 +193,7 @@ func TestPgStore(t *testing.T) {
 			OldPassword:      "new123456",
 		}
 		err = store.UpdatePassword(ctx, data)
-		require.True(t, err == nil, "An error was returned on update password: %s", err)
+		require.True(t, err == nil, "An error was returned on update password, second: %s", err)
 
 		secondChecker := &usecase.CheckUserAndPasswordDto{
 			Email:    "test_password@gmail.com",
