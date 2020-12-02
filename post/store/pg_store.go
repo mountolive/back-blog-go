@@ -46,7 +46,7 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
       CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
       CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-      RETURSN TRIGGER AS $$
+      RETURNS TRIGGER AS $$
       BEGIN
         NEW.updated_at = NOW();
         RETURN NEW;
@@ -86,6 +86,9 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
       FOR EACH ROW
       EXECUTE PROCEDURE trigger_set_timestamp();
   `)
+	if err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 
