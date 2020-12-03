@@ -10,6 +10,7 @@ import (
 	"github.com/mountolive/back-blog-go/post/usecase"
 	"github.com/ory/dockertest"
 	"github.com/ory/dockertest/docker"
+	"github.com/stretchr/testify/require"
 )
 
 var store *PgStore
@@ -76,8 +77,24 @@ func TestMain(m *testing.M) {
 }
 
 func TestPgStore(t *testing.T) {
-	// genericErr := "\nGot: %s \n Expected: %s\n"
+	genericErr := "\nGot: %s \n Expected: %s\n"
 	t.Run("Canary", func(t *testing.T) {
 		var _ usecase.PostStore = &PgStore{}
+	})
+
+	t.Run("Create", func(t *testing.T) {
+		post := &usecase.CreatePostDto{
+			Creator: "theUser",
+			Content: "anything",
+			Tags:    []string{"tag1", "tag2"},
+		}
+		result, err := store.Create(context.Background(), post)
+		require.True(t, err == nil, "An error was returned. Not expected, Create")
+		require.True(t, result != nil, "No entity was returned from Create")
+		require.True(t, result.Id != "", "Id was empty, error creating the Post")
+		require.True(t, result.Creator == post.Creator, genericErr,
+			result.Creator, post.Creator)
+		require.True(t, result.Content == post.Content, genericErr,
+			result.Content, post.Content)
 	})
 }

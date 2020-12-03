@@ -35,6 +35,14 @@ type filterTestCase struct {
 	CtxCancel   bool
 }
 
+type getOneTestCase struct {
+	Name        string
+	Description string
+	Errored     bool
+	CtxCancel   bool
+	Repo        *PostRepository
+}
+
 func TestPostRepository(t *testing.T) {
 	logger := &mockLogger{}
 	repo := &PostRepository{
@@ -106,6 +114,54 @@ func TestPostRepository(t *testing.T) {
 					content := tc.Dto.Content
 					require.Equal(t, content, post.Content, genericError, post.Content, content)
 				}
+			})
+		}
+	})
+
+	t.Run("GetPost", func(t *testing.T) {
+		testCases := []getOneTestCase{
+			{
+				Name:        "Context Canceled",
+				Description: "It should return an OperationCanceledError",
+				CtxCancel:   true,
+				Errored:     true,
+				Repo:        repo,
+			},
+			{
+				Name:        "Error from store",
+				Description: "It should return a nil pointer and an error",
+				Errored:     true,
+				Repo: &PostRepository{
+					Store:     &mockStoreEmpty{},
+					Sanitizer: &mockSanitizer{},
+					Checker:   &mockErrorChecker{},
+					Logger:    logger,
+				},
+			},
+			{
+				Name:        "Can return a *PostDto",
+				Description: "It should return the found Post, from the store",
+				Repo:        repo,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.Name, func(t *testing.T) {
+				t.Log(tc.Description)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				if tc.CtxCancel {
+					cancel()
+				}
+				post, err := tc.Repo.GetPost(ctx, "in-bloom")
+				if tc.Errored {
+					require.True(t, post == nil, "Returned PostDto should be nil")
+					require.True(t, err != nil, "Err should be not nil")
+					return
+				}
+				require.True(t, err == nil, "Err should be nil")
+				// This depends on the mockStore used
+				require.True(t, post != nil, "Returned PostDto shouldn't be nil")
 			})
 		}
 	})

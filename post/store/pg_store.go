@@ -104,6 +104,12 @@ func (p *PgStore) Update(ctx context.Context,
 	return nil, nil
 }
 
+func (p *PgStore) ReadOne(ctx context.Context,
+	id string) (*usecase.PostDto, error) {
+	// TODO Implement
+	return nil, nil
+}
+
 func (p *PgStore) Filter(ctx context.Context,
 	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
 	// TODO implement

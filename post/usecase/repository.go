@@ -62,6 +62,7 @@ type PostStore interface {
 	Create(context.Context, *CreatePostDto) (*PostDto, error)
 	Update(context.Context, *UpdatePostDto) (*PostDto, error)
 	Filter(context.Context, *GeneralFilter) ([]*PostDto, error)
+	ReadOne(context.Context, string) (*PostDto, error)
 }
 
 // Basic contract intended to enforce sanitizing of content to avoid
@@ -120,6 +121,15 @@ func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto)
 	defer cancel()
 	updated.Content = r.Sanitizer.SanitizeContent(updated.Content)
 	return r.Store.Update(ctx, updated)
+}
+
+func (r *PostRepository) GetPost(ctx context.Context, id string) (*PostDto, error) {
+	ctx, cancel, err := checkContextAndRecreate(ctx)
+	if err != nil {
+		return nil, r.logErrorAndWrap(err, "Context error")
+	}
+	defer cancel()
+	return r.Store.ReadOne(ctx, id)
 }
 
 func (r *PostRepository) FilterByTag(ctx context.Context,
