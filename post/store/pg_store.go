@@ -61,24 +61,24 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
 
-      CREATE INDEX IF NOT EXISTS idx_creator ON posts;
+      CREATE INDEX IF NOT EXISTS idx_creator ON posts (creator);
 
       CREATE TABLE IF NOT EXISTS tags (
         id         UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
-        name       CITEXT NOT NULL UNIQUE CHECK (name <> '').
+        name       CITEXT NOT NULL UNIQUE CHECK (name <> '')
       );
 
-      CREATE INDEX IF NOT EXISTS idx_name ON tags;
+      CREATE INDEX IF NOT EXISTS idx_name ON tags (name);
 
       CREATE TABLE IF NOT EXISTS posts_tags (
         post_id    UUID NOT NULL,
         tag_id     UUID NOT NULL,
         CONSTRAINT fk_post FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
-        CONSTRAINT fk_tag FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+        CONSTRAINT fk_tag FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
       );
 
-      CREATE INDEX IF NOT EXISTS idx_post_tag ON posts_tags (post_id, tag_id);
-      CREATE INDEX IF NOT EXISTS idx_tag_post ON posts_tags (tag_id, post_id);
+      CREATE INDEX IF NOT EXISTS idx_post_id ON posts_tags (post_id);
+      CREATE INDEX IF NOT EXISTS idx_tag_id ON posts_tags (tag_id);
 
       DROP TRIGGER IF EXISTS set_timestamp ON posts;
       CREATE TRIGGER set_timestamp
