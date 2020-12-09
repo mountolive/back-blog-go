@@ -13,7 +13,79 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const genericErr = "\nGot: %s \n Expected: %s\n"
+
 var store *PgStore
+
+func TestMain(m *testing.M) {
+	os.Exit(testMainWrapper(m))
+}
+
+func TestPgStore(t *testing.T) {
+	t.Run("Canary", func(t *testing.T) {
+		var _ usecase.PostStore = &PgStore{}
+	})
+
+	t.Run("Create", func(t *testing.T) {
+		post := &usecase.CreatePostDto{
+			Creator: "theUser",
+			Content: "anything",
+			Tags:    []string{"tag1", "tag2"},
+		}
+		result := createPost(t, post)
+		for _, tag := range post.Tags {
+			checkPostsByTag(t, result, tag)
+		}
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		post := &usecase.CreatePostDto{
+			Creator: "sonic",
+			Content: "Incinerate",
+			Tags:    []string{"tag1", "tag2"},
+		}
+		result := createPost(t, post)
+
+		updatedPost := &usecase.UpdatePostDto{
+			Id:      result.Id,
+			Content: "Bull in the heather",
+			Tags:    []string{"tag3"},
+		}
+		updated, err := store.Update(context.Background(),
+			updatedPost)
+		require.True(t, err == nil, "Error was returned. Update")
+		require.True(t, updated != nil, "No entity returned, Update")
+		require.True(t, updated.Id == result.Id, "Ids not matching after update")
+		require.True(t, updated.Content == updatedPost.Content, "Content not updated")
+		for _, tag := range updatedPost.Tags {
+			checkPostsByTag(t, result, tag)
+		}
+	})
+}
+
+func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.PostDto {
+	result, err := store.Create(context.Background(), post)
+	require.True(t, err == nil, "An error was returned. Not expected, Create")
+	require.True(t, result != nil, "No entity was returned from Create")
+	require.True(t, result.Id != "", "Id was empty, error creating the Post")
+	require.True(t, result.Creator == post.Creator, genericErr,
+		result.Creator, post.Creator)
+	require.True(t, result.Content == post.Content, genericErr,
+		result.Content, post.Content)
+	return result
+}
+
+func checkPostsByTag(t *testing.T, result *usecase.PostDto, tag string) {
+	filter := &usecase.GeneralFilter{PageSize: 1}
+	filter.Tag = tag
+	filteredPosts, err := store.Filter(context.Background(), filter)
+	found := len(filteredPosts)
+	require.True(t, err == nil,
+		"An error was returned. Not expected, Create's Filter")
+	require.True(t, found == 1, genericErr, found, 1)
+	require.True(t, filteredPosts[0].Id == result.Id,
+		"Created post doesn't match with found post")
+}
 
 func testMainWrapper(m *testing.M) int {
 	var err error
@@ -70,31 +142,4 @@ func testMainWrapper(m *testing.M) int {
 	}
 
 	return m.Run()
-}
-
-func TestMain(m *testing.M) {
-	os.Exit(testMainWrapper(m))
-}
-
-func TestPgStore(t *testing.T) {
-	genericErr := "\nGot: %s \n Expected: %s\n"
-	t.Run("Canary", func(t *testing.T) {
-		var _ usecase.PostStore = &PgStore{}
-	})
-
-	t.Run("Create", func(t *testing.T) {
-		post := &usecase.CreatePostDto{
-			Creator: "theUser",
-			Content: "anything",
-			Tags:    []string{"tag1", "tag2"},
-		}
-		result, err := store.Create(context.Background(), post)
-		require.True(t, err == nil, "An error was returned. Not expected, Create")
-		require.True(t, result != nil, "No entity was returned from Create")
-		require.True(t, result.Id != "", "Id was empty, error creating the Post")
-		require.True(t, result.Creator == post.Creator, genericErr,
-			result.Creator, post.Creator)
-		require.True(t, result.Content == post.Content, genericErr,
-			result.Content, post.Content)
-	})
 }
