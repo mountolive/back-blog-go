@@ -29,18 +29,17 @@ func TestPgStore(t *testing.T) {
 	t.Run("Create", func(t *testing.T) {
 		post := &usecase.CreatePostDto{
 			Creator: "theUser",
+			Title:   "knows all",
 			Content: "anything",
 			Tags:    []string{"tag1", "tag2"},
 		}
-		result := createPost(t, post)
-		for _, tag := range post.Tags {
-			checkPostsByTag(t, result, tag, 1)
-		}
+		createPost(t, post)
 	})
 
 	t.Run("Update", func(t *testing.T) {
 		post := &usecase.CreatePostDto{
 			Creator: "sonic",
+			Title:   "youth",
 			Content: "Incinerate",
 			Tags:    []string{"tag1", "tag2"},
 		}
@@ -49,6 +48,7 @@ func TestPgStore(t *testing.T) {
 		updatedPost := &usecase.UpdatePostDto{
 			Id:      result.Id,
 			Content: "Bull in the heather",
+			Title:   "Playing bass like Kim Gordon",
 			Tags:    []string{"tag3"},
 		}
 		updated, err := store.Update(context.Background(),
@@ -57,6 +57,7 @@ func TestPgStore(t *testing.T) {
 		require.True(t, updated != nil, "No entity returned, Update")
 		require.True(t, updated.Id == result.Id, "Ids not matching after update")
 		require.True(t, updated.Content == updatedPost.Content, "Content not updated")
+		require.True(t, updated.Title == updatedPost.Title, "Title not updated")
 		for _, tag := range updatedPost.Tags {
 			checkPostsByTag(t, result, tag, 1)
 		}
@@ -66,16 +67,19 @@ func TestPgStore(t *testing.T) {
 		posts := []*usecase.CreatePostDto{
 			{
 				Creator: "first",
+				Title:   "firstT",
 				Content: "hello",
 				Tags:    []string{"tag1"},
 			},
 			{
 				Creator: "second",
+				Title:   "secondT",
 				Content: "there",
 				Tags:    []string{"tag1"},
 			},
 			{
 				Creator: "third",
+				Title:   "thirdT",
 				Content: "nope",
 				Tags:    []string{"tag2"},
 			},
@@ -125,6 +129,7 @@ func TestPgStore(t *testing.T) {
 	t.Run("ReadOne", func(t *testing.T) {
 		post := &usecase.CreatePostDto{
 			Creator: "melvins",
+			Title:   "Buzzo",
 			Content: "the bit",
 			Tags:    []string{"stag"},
 		}
@@ -142,7 +147,8 @@ func TestPgStore(t *testing.T) {
 
 func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.PostDto {
 	result, err := store.Create(context.Background(), post)
-	require.True(t, err == nil, "An error was returned. Not expected, Create")
+	t.Log(result)
+	require.True(t, err == nil, "An error was returned. Not expected: %s, Create", err)
 	require.True(t, result != nil, "No entity was returned from Create")
 	require.True(t, result.Id != "", "Id was empty, error creating the Post")
 	require.True(t, result.Creator == post.Creator, genericErr,

@@ -11,6 +11,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20201113031856-722100d81a8e
+	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.9.2
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/opencontainers/image-spec v1.0.1 // indirect

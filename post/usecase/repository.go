@@ -17,6 +17,7 @@ type Tag struct {
 type PostDto struct {
 	Id        string
 	Creator   string
+	Title     string
 	Content   string
 	Tags      []Tag
 	CreatedAt time.Time
@@ -25,6 +26,7 @@ type PostDto struct {
 
 // Dto for handling creation of Posts
 type CreatePostDto struct {
+	Title   string
 	Creator string
 	Content string
 	Tags    []string
@@ -33,6 +35,7 @@ type CreatePostDto struct {
 // Dto for handling update of Posts
 type UpdatePostDto struct {
 	Id      string
+	Title   string
 	Content string
 	Tags    []string
 }
@@ -93,10 +96,11 @@ var (
 	OperationCanceledError = errors.New("The context of the operation was canceled")
 	PostNotFoundError      = errors.New("The post requested was not found")
 	UserNotFoundError      = errors.New("The creator user does not exist")
-	UserCheckError         = errors.New("There was an error trying to check for the user's existence")
+	UserCheckError         = errors.New("Error trying to check for the user's existence")
 )
 
-func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*PostDto, error) {
+func (r *PostRepository) CreatePost(ctx context.Context,
+	post *CreatePostDto) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
@@ -107,13 +111,15 @@ func (r *PostRepository) CreatePost(ctx context.Context, post *CreatePostDto) (*
 		return nil, r.logErrorAndWrap(UserCheckError, err.Error())
 	}
 	if !exists {
-		return nil, r.logErrorAndWrap(UserNotFoundError, fmt.Sprintf("User %s not found", post.Creator))
+		return nil, r.logErrorAndWrap(UserNotFoundError,
+			fmt.Sprintf("User %s not found", post.Creator))
 	}
 	post.Content = r.Sanitizer.SanitizeContent(post.Content)
 	return r.Store.Create(ctx, post)
 }
 
-func (r *PostRepository) UpdatePost(ctx context.Context, updated *UpdatePostDto) (*PostDto, error) {
+func (r *PostRepository) UpdatePost(ctx context.Context,
+	updated *UpdatePostDto) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
@@ -162,7 +168,8 @@ func (r *PostRepository) logErrorAndWrap(err error, msg string) error {
 	return fmt.Errorf("%s: %w \n", msg, err)
 }
 
-func checkContextAndRecreate(ctx context.Context) (context.Context, context.CancelFunc, error) {
+func checkContextAndRecreate(
+	ctx context.Context) (context.Context, context.CancelFunc, error) {
 	select {
 	case <-ctx.Done():
 		return nil, nil, fmt.Errorf("%w: %v", OperationCanceledError, ctx.Err())
