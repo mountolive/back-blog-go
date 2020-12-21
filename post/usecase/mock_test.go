@@ -27,8 +27,8 @@ func (m *mockStoreNotEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*Po
 	return []*PostDto{&PostDto{Creator: "test", Content: "test", Tags: []Tag{Tag{p.Tag}}}}, nil
 }
 
-func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) (*PostDto, error) {
-	return &PostDto{Id: id, Creator: "bla", Content: "hello"}, nil
+func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) *PostDto {
+	return &PostDto{Id: id, Creator: "bla", Content: "hello"}
 }
 
 type mockStoreEmpty struct{}
@@ -45,8 +45,8 @@ func (m *mockStoreEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*PostD
 	return nil, nil
 }
 
-func (m *mockStoreEmpty) ReadOne(ctx context.Context, id string) (*PostDto, error) {
-	return nil, errors.New("Any error occurred")
+func (m *mockStoreEmpty) ReadOne(ctx context.Context, id string) *PostDto {
+	return &PostDto{}
 }
 
 type mockSanitizer struct{}

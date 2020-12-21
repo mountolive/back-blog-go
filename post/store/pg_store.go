@@ -19,8 +19,10 @@ type PgStore struct {
 var (
 	ConnectionError        = errors.New("An error occurred when connecting to the DB")
 	TableCreationError     = errors.New("An error occurred when trying to create needed tables")
-	CreateTransactionError = errors.New("An error occurred when trying to create Create transaction")
-	ExecTransactionError   = errors.New("An error occurred when trying to exec Create transaction")
+	CreateTransactionError = errors.New(
+		"An error occurred when trying to create Create transaction",
+	)
+	ExecTransactionError = errors.New("An error occurred when trying to exec Create transaction")
 )
 
 func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
@@ -140,14 +142,36 @@ func (p *PgStore) Create(ctx context.Context,
 
 func (p *PgStore) Update(ctx context.Context,
 	update *usecase.UpdatePostDto) (*usecase.PostDto, error) {
-	// TODO implement
-	return nil, nil
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
+	}
+	defer tx.Rollback(ctx)
+
+	statement := buildUpdateStatement(update)
+	params := buildUpdateParams(update)
+
+	_, err = tx.Exec(ctx, statement, params...)
+	if err != nil {
+		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
+	}
+	return p.ReadOne(ctx, update.Id)
 }
 
 func (p *PgStore) ReadOne(ctx context.Context,
 	id string) (*usecase.PostDto, error) {
-	// TODO Implement
-	return nil, nil
+	// TODO Add tags
+	post := &usecase.PostDto{}
+	row := p.db.QueryRow(ctx, `
+         SELECT id, creator, title, content, created_at, updated_at FROM posts
+         WHERE id = $1;`, id)
+	rowToPost(row, post)
+	return post, nil
 }
 
 func (p *PgStore) Filter(ctx context.Context,
@@ -156,8 +180,19 @@ func (p *PgStore) Filter(ctx context.Context,
 	return []*usecase.PostDto{}, nil
 }
 
+func buildUpdateStatment(update *usecase.UpdatePostDto) string {
+	// TODO implement
+	return ""
+}
+
+func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
+	// TODO implement
+	return nil
+}
+
 func (p *PgStore) getNewestByCreator(ctx context.Context,
 	creator string) *usecase.PostDto {
+	// TODO Add tags
 	post := &usecase.PostDto{}
 	row := p.db.QueryRow(ctx, `
          SELECT id, creator, title, content, created_at, updated_at FROM posts

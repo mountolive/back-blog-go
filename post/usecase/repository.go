@@ -65,7 +65,7 @@ type PostStore interface {
 	Create(context.Context, *CreatePostDto) (*PostDto, error)
 	Update(context.Context, *UpdatePostDto) (*PostDto, error)
 	Filter(context.Context, *GeneralFilter) ([]*PostDto, error)
-	ReadOne(context.Context, string) (*PostDto, error)
+	ReadOne(context.Context, string) *PostDto
 }
 
 // Basic contract intended to enforce sanitizing of content to avoid
@@ -99,6 +99,7 @@ var (
 	UserCheckError         = errors.New("Error trying to check for the user's existence")
 )
 
+// Persists and return a PostDto with the data passed
 func (r *PostRepository) CreatePost(ctx context.Context,
 	post *CreatePostDto) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
@@ -118,6 +119,8 @@ func (r *PostRepository) CreatePost(ctx context.Context,
 	return r.Store.Create(ctx, post)
 }
 
+// Updates and return a PostDto with the data passed,
+//   otherwise returns no-nil error
 func (r *PostRepository) UpdatePost(ctx context.Context,
 	updated *UpdatePostDto) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
@@ -129,15 +132,22 @@ func (r *PostRepository) UpdatePost(ctx context.Context,
 	return r.Store.Update(ctx, updated)
 }
 
+// Retrieves a post by its identifier (id)
 func (r *PostRepository) GetPost(ctx context.Context, id string) (*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
-	return r.Store.ReadOne(ctx, id)
+	post := r.Store.ReadOne(ctx, id)
+	if post.Id == "" {
+		return nil, r.logErrorAndWrap(PostNotFoundError, fmt.Sprintf("ID: %s.", id))
+	}
+
+	return post, nil
 }
 
+// Filters persisted posts by tag(s)
 func (r *PostRepository) FilterByTag(ctx context.Context,
 	filter *ByTagDto, page, pageSize int) ([]*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
@@ -150,6 +160,7 @@ func (r *PostRepository) FilterByTag(ctx context.Context,
 	return r.Store.Filter(ctx, generalFilter)
 }
 
+// Filters persisted posts by date range
 func (r *PostRepository) FilterByDateRange(ctx context.Context,
 	filter *ByDateRangeDto, page, pageSize int) ([]*PostDto, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)

@@ -53,7 +53,12 @@ func TestPostRepository(t *testing.T) {
 	}
 	genericError := "Got: %v; Expected: %v"
 	t.Run("CreatePost", func(t *testing.T) {
-		testDto := &CreatePostDto{"username", "content", []string{"tag1", "tag2"}}
+		testDto := &CreatePostDto{
+			Title:   "title",
+			Creator: "username",
+			Content: "content",
+			Tags:    []string{"tag1", "tag2"},
+		}
 		testCases := []createPostTestCase{
 			{
 				Name:        "Proper Create Post",
@@ -128,8 +133,8 @@ func TestPostRepository(t *testing.T) {
 				Repo:        repo,
 			},
 			{
-				Name:        "Error from store",
-				Description: "It should return a nil pointer and an error",
+				Name:        "Post  not found",
+				Description: "It should return an error indicating the post was not found",
 				Errored:     true,
 				Repo: &PostRepository{
 					Store:     &mockStoreEmpty{},
@@ -167,7 +172,12 @@ func TestPostRepository(t *testing.T) {
 	})
 
 	t.Run("UpdatePost", func(t *testing.T) {
-		testDto := &UpdatePostDto{"id", "content", []string{"tag1", "tag2"}}
+		testDto := &UpdatePostDto{
+			Id:      "id",
+			Title:   "title",
+			Content: "content",
+			Tags:    []string{"tag1", "tag2"},
+		}
 		testCases := []updatePostTestCase{
 			{
 				Name:        "Proper Update Post",

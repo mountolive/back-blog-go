@@ -41,7 +41,7 @@ func TestPgStore(t *testing.T) {
 			Creator: "sonic",
 			Title:   "youth",
 			Content: "Incinerate",
-			Tags:    []string{"tag1", "tag2"},
+			Tags:    []string{"tag3", "tag4"},
 		}
 		result := createPost(t, post)
 
@@ -49,7 +49,7 @@ func TestPgStore(t *testing.T) {
 			Id:      result.Id,
 			Content: "Bull in the heather",
 			Title:   "Playing bass like Kim Gordon",
-			Tags:    []string{"tag3"},
+			Tags:    []string{"tag4"},
 		}
 		updated, err := store.Update(context.Background(),
 			updatedPost)
@@ -69,19 +69,19 @@ func TestPgStore(t *testing.T) {
 				Creator: "first",
 				Title:   "firstT",
 				Content: "hello",
-				Tags:    []string{"tag1"},
+				Tags:    []string{"tag5"},
 			},
 			{
 				Creator: "second",
 				Title:   "secondT",
 				Content: "there",
-				Tags:    []string{"tag1"},
+				Tags:    []string{"tag6"},
 			},
 			{
 				Creator: "third",
 				Title:   "thirdT",
 				Content: "nope",
-				Tags:    []string{"tag2"},
+				Tags:    []string{"tag7"},
 			},
 		}
 		createdPosts := []*usecase.PostDto{}
