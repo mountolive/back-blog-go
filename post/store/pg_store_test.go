@@ -135,8 +135,7 @@ func TestPgStore(t *testing.T) {
 		}
 		result := createPost(t, post)
 
-		found, err := store.ReadOne(context.Background(), result.Id)
-		require.True(t, err == nil, "Error should be nil: %s. ReadOne", err)
+		found := store.ReadOne(context.Background(), result.Id)
 		require.True(t, found != nil, "Post not found by the passed Id. ReadOne")
 		require.True(t, found.Content == post.Content, genericErr,
 			found.Content, post.Content)

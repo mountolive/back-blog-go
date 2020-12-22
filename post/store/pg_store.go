@@ -25,6 +25,21 @@ var (
 	ExecTransactionError = errors.New("An error occurred when trying to exec Create transaction")
 )
 
+const (
+	insertTag  = "INSERT INTO tags (tag_name) VALUES %s ON CONFLICT DO UPDATE RETURNING id"
+	joinUpsert = `
+         WITH postids AS (
+           %s
+         ),
+         tagids AS (
+           %s
+         )
+
+         INSERT INTO posts_tags (post_id, tag_id)
+         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
+`
+)
+
 func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 	db, err := pgxpool.Connect(ctx, url)
 	if err != nil {
@@ -108,17 +123,10 @@ func (p *PgStore) Create(ctx context.Context,
 	}
 	defer tx.Rollback(ctx)
 
-	statement := fmt.Sprintf(`
-         WITH postids AS (
-           INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id
-         ),
-         tagids AS (
-           INSERT INTO tags (tag_name) VALUES %s RETURNING id
-         )
+	postStatement := "INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id"
+	insertTagStatement := fmt.Sprintf(insertTag, insertParamsString(create.Tags, 4))
 
-         INSERT INTO posts_tags (post_id, tag_id)
-         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;`,
-		statementsString(create.Tags, 4))
+	statement := fmt.Sprintf(joinUpsert, postStatement, insertTagStatement)
 
 	params := make([]interface{}, 0)
 	params = append(params, create.Creator)
@@ -160,34 +168,23 @@ func (p *PgStore) Update(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
-	return p.ReadOne(ctx, update.Id)
+	return p.ReadOne(ctx, update.Id), nil
 }
 
-func (p *PgStore) ReadOne(ctx context.Context,
-	id string) (*usecase.PostDto, error) {
+func (p *PgStore) ReadOne(ctx context.Context, id string) *usecase.PostDto {
 	// TODO Add tags
 	post := &usecase.PostDto{}
 	row := p.db.QueryRow(ctx, `
          SELECT id, creator, title, content, created_at, updated_at FROM posts
          WHERE id = $1;`, id)
 	rowToPost(row, post)
-	return post, nil
+	return post
 }
 
 func (p *PgStore) Filter(ctx context.Context,
 	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
 	// TODO implement
 	return []*usecase.PostDto{}, nil
-}
-
-func buildUpdateStatment(update *usecase.UpdatePostDto) string {
-	// TODO implement
-	return ""
-}
-
-func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
-	// TODO implement
-	return nil
 }
 
 func (p *PgStore) getNewestByCreator(ctx context.Context,
@@ -201,7 +198,71 @@ func (p *PgStore) getNewestByCreator(ctx context.Context,
 	return post
 }
 
-func statementsString(tags []string, position int) string {
+func buildUpdateStatement(update *usecase.UpdatePostDto) string {
+	separated := []string{}
+	preparedIndex := 1
+
+	deleteStatement := deleteOldTagsStatement(&preparedIndex)
+
+	checkAndAppendAssignment(
+		update.Content, "content", separated, &preparedIndex,
+	)
+	checkAndAppendAssignment(
+		update.Title, "title", separated, &preparedIndex,
+	)
+
+	updateStatement := fmt.Sprintf(
+		"UPDATE posts SET %s WHERE id = $%d",
+		strings.Join(separated, ","),
+		preparedIndex,
+	)
+
+	insertTagStatement := fmt.Sprintf(
+		insertTag,
+		insertParamsString(update.Tags, preparedIndex),
+	)
+
+	tagPostStatement := fmt.Sprintf(joinUpsert, updateStatement, insertTagStatement)
+
+	return fmt.Sprintf("%s; %s", deleteStatement, tagPostStatement)
+}
+
+func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
+	params := make([]interface{}, 0)
+	id := update.Id
+	params = append(params, id)
+	content := update.Content
+	if content != "" {
+		params = append(params, content)
+	}
+	title := update.Title
+	if title != "" {
+		params = append(params, title)
+	}
+	params = append(params, id)
+	for _, tag := range update.Tags {
+		params = append(params, tag)
+	}
+	return params
+}
+
+func checkAndAppendAssignment(
+	param, paramName string, separated []string, index *int) {
+	if param != "" {
+		separated = append(
+			separated, fmt.Sprintf("%s = $%d", paramName, *index),
+		)
+		*index += 1
+	}
+}
+
+func deleteOldTagsStatement(index *int) string {
+	statement := fmt.Sprintf(`DELETE FROM posts_tags WHERE post_id = $%d;`, *index)
+	*index += 1
+	return statement
+}
+
+func insertParamsString(tags []string, position int) string {
 	statements := []string{}
 	for i := 0; i < len(tags); i++ {
 		row := fmt.Sprintf("($%d)", position)
