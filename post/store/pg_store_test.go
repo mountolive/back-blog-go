@@ -53,7 +53,7 @@ func TestPgStore(t *testing.T) {
 		}
 		updated, err := store.Update(context.Background(),
 			updatedPost)
-		require.True(t, err == nil, "Error was returned. Update")
+		require.True(t, err == nil, "Error was returned. Update %s", err)
 		require.True(t, updated != nil, "No entity returned, Update")
 		require.True(t, updated.Id == result.Id, "Ids not matching after update")
 		require.True(t, updated.Content == updatedPost.Content, "Content not updated")
@@ -146,7 +146,6 @@ func TestPgStore(t *testing.T) {
 
 func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.PostDto {
 	result, err := store.Create(context.Background(), post)
-	t.Log(result)
 	require.True(t, err == nil, "An error was returned. Not expected: %s, Create", err)
 	require.True(t, result != nil, "No entity was returned from Create")
 	require.True(t, result.Id != "", "Id was empty, error creating the Post")

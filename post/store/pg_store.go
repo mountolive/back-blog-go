@@ -26,7 +26,11 @@ var (
 )
 
 const (
-	insertTag  = "INSERT INTO tags (tag_name) VALUES %s ON CONFLICT DO UPDATE RETURNING id"
+	insertTag = `
+        INSERT INTO tags (tag_name) VALUES %s
+        ON CONFLICT (tag_name) DO NOTHING RETURNING id
+`
+
 	joinUpsert = `
          WITH postids AS (
            %s
@@ -205,10 +209,10 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 	deleteStatement := deleteOldTagsStatement(&preparedIndex)
 
 	checkAndAppendAssignment(
-		update.Content, "content", separated, &preparedIndex,
+		update.Content, "content", &separated, &preparedIndex,
 	)
 	checkAndAppendAssignment(
-		update.Title, "title", separated, &preparedIndex,
+		update.Title, "title", &separated, &preparedIndex,
 	)
 
 	updateStatement := fmt.Sprintf(
@@ -216,6 +220,7 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 		strings.Join(separated, ","),
 		preparedIndex,
 	)
+	fmt.Println(updateStatement)
 
 	insertTagStatement := fmt.Sprintf(
 		insertTag,
@@ -247,10 +252,10 @@ func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
 }
 
 func checkAndAppendAssignment(
-	param, paramName string, separated []string, index *int) {
+	param, paramName string, separated *[]string, index *int) {
 	if param != "" {
-		separated = append(
-			separated, fmt.Sprintf("%s = $%d", paramName, *index),
+		*separated = append(
+			*separated, fmt.Sprintf("%s = $%d", paramName, *index),
 		)
 		*index += 1
 	}
