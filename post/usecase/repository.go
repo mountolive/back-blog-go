@@ -95,6 +95,7 @@ type PostRepository struct {
 var (
 	OperationCanceledError = errors.New("The context of the operation was canceled")
 	PostNotFoundError      = errors.New("The post requested was not found")
+	MissingIdError         = errors.New("Please pass the Id from the post to be updated")
 	UserNotFoundError      = errors.New("The creator user does not exist")
 	UserCheckError         = errors.New("Error trying to check for the user's existence")
 )
@@ -128,6 +129,9 @@ func (r *PostRepository) UpdatePost(ctx context.Context,
 		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
+	if updated.Id == "" {
+		return nil, r.logErrorAndWrap(MissingIdError, "UpdatePost")
+	}
 	updated.Content = r.Sanitizer.SanitizeContent(updated.Content)
 	return r.Store.Update(ctx, updated)
 }

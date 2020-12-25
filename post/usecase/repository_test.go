@@ -193,6 +193,17 @@ func TestPostRepository(t *testing.T) {
 				CtxCancel:   true,
 				Repo:        repo,
 			},
+			{
+				Name:        "Missing Id",
+				Description: "It should return a MissingIdError",
+				Dto: &UpdatePostDto{
+					Title:   "some title",
+					Content: "some content",
+					Tags:    []string{"many tags... (sic)"},
+				},
+				ExpErr: MissingIdError,
+				Repo:   repo,
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {

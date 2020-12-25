@@ -12,6 +12,7 @@ import (
 	"github.com/mountolive/back-blog-go/post/usecase"
 )
 
+// Store wrapper, it uses a connection pool
 type PgStore struct {
 	db *pgxpool.Pool
 }
@@ -25,11 +26,25 @@ var (
 	ExecTransactionError = errors.New("An error occurred when trying to exec transaction")
 )
 
-const insertTag = `
+const (
+	insertTag = `
          INSERT INTO tags (tag_name) VALUES %s
          ON CONFLICT (tag_name) DO NOTHING RETURNING id
-      `
+  `
+	selectPost = `
+         SELECT
+           id, p.creator, p.title, p.content, p.created_at, p.updated_at, t.tag_array
+         FROM posts p LEFT OUTER JOIN (
+           SELECT pt.post_id AS id, array_agg(t.tag_name) AS tag_array
+           FROM posts_tags pt
+           JOIN tags t ON t.id = pt.tag_id
+           GROUP BY pt.post_id
+         ) t USING (id)
+         %s;
+  `
+)
 
+// Creates a store for persistences of posts
 func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 	db, err := pgxpool.Connect(ctx, url)
 	if err != nil {
@@ -43,6 +58,97 @@ func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 	}
 
 	return store, nil
+}
+
+// Creates a Post with data with corresponding CreatePostDto
+func (p *PgStore) Create(ctx context.Context,
+	create *usecase.CreatePostDto) (*usecase.PostDto, error) {
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
+	}
+	defer tx.Rollback(ctx)
+
+	postStatement := "INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id"
+	insertTagStatement := fmt.Sprintf(insertTag, insertParamsString(create.Tags, 4))
+
+	joinUpsert := `
+         WITH postids AS (
+           %s
+         ),
+         tagids AS (
+           %s
+         )
+
+         INSERT INTO posts_tags (post_id, tag_id)
+         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
+  `
+
+	statement := fmt.Sprintf(joinUpsert, postStatement, insertTagStatement)
+
+	params := make([]interface{}, 0)
+	params = append(params, create.Creator)
+	params = append(params, create.Title)
+	params = append(params, create.Content)
+	for _, tag := range create.Tags {
+		params = append(params, tag)
+	}
+
+	_, err = tx.Exec(ctx, statement, params...)
+	if err != nil {
+		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
+	}
+
+	return p.getNewestByCreator(ctx, create.Creator), nil
+}
+
+// Updates the corresponding post with the Id from the UpdatePostDto passed
+func (p *PgStore) Update(ctx context.Context,
+	update *usecase.UpdatePostDto) (*usecase.PostDto, error) {
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
+	}
+	defer tx.Rollback(ctx)
+
+	statement := buildUpdateStatement(update)
+	params := buildUpdateParams(update)
+
+	_, err = tx.Exec(ctx, statement, params...)
+	if err != nil {
+		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
+	}
+
+	return p.ReadOne(ctx, update.Id), nil
+}
+
+// Reads from the store the post with the passed Id
+func (p *PgStore) ReadOne(ctx context.Context, id string) *usecase.PostDto {
+	post := &usecase.PostDto{}
+	row := p.db.QueryRow(
+		ctx,
+		fmt.Sprintf(selectPost, "WHERE id = $1"),
+		id,
+	)
+	rowToPost(row, post)
+	return post
+}
+
+// Filters either by tags or creation date
+func (p *PgStore) Filter(ctx context.Context,
+	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
+	// TODO implement
+	return []*usecase.PostDto{}, nil
 }
 
 func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
@@ -106,99 +212,14 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 	return tx.Commit(ctx)
 }
 
-func (p *PgStore) Create(ctx context.Context,
-	create *usecase.CreatePostDto) (*usecase.PostDto, error) {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
-	}
-	defer tx.Rollback(ctx)
-
-	postStatement := "INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id"
-	insertTagStatement := fmt.Sprintf(insertTag, insertParamsString(create.Tags, 4))
-
-	joinUpsert := `
-         WITH postids AS (
-           %s
-         ),
-         tagids AS (
-           %s
-         )
-
-         INSERT INTO posts_tags (post_id, tag_id)
-         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
-  `
-
-	statement := fmt.Sprintf(joinUpsert, postStatement, insertTagStatement)
-
-	params := make([]interface{}, 0)
-	params = append(params, create.Creator)
-	params = append(params, create.Title)
-	params = append(params, create.Content)
-	for _, tag := range create.Tags {
-		params = append(params, tag)
-	}
-
-	_, err = tx.Exec(ctx, statement, params...)
-	if err != nil {
-		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
-	}
-
-	return p.getNewestByCreator(ctx, create.Creator), nil
-}
-
-func (p *PgStore) Update(ctx context.Context,
-	update *usecase.UpdatePostDto) (*usecase.PostDto, error) {
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
-	}
-	defer tx.Rollback(ctx)
-
-	statement := buildUpdateStatement(update)
-	params := buildUpdateParams(update)
-
-	_, err = tx.Exec(ctx, statement, params...)
-	if err != nil {
-		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
-	}
-
-	return p.ReadOne(ctx, update.Id), nil
-}
-
-func (p *PgStore) ReadOne(ctx context.Context, id string) *usecase.PostDto {
-	// TODO Add tags
-	post := &usecase.PostDto{}
-	row := p.db.QueryRow(ctx, `
-         SELECT id, creator, title, content, created_at, updated_at FROM posts
-         WHERE id = $1;`, id)
-	rowToPost(row, post)
-	return post
-}
-
-func (p *PgStore) Filter(ctx context.Context,
-	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
-	// TODO implement
-	return []*usecase.PostDto{}, nil
-}
-
 func (p *PgStore) getNewestByCreator(ctx context.Context,
 	creator string) *usecase.PostDto {
-	// TODO Add tags
 	post := &usecase.PostDto{}
-	row := p.db.QueryRow(ctx, `
-         SELECT id, creator, title, content, created_at, updated_at FROM posts
-         WHERE creator = $1 ORDER BY updated_at DESC LIMIT 1;`, creator)
+	row := p.db.QueryRow(
+		ctx,
+		fmt.Sprintf(selectPost, "WHERE p.creator = $1 ORDER BY updated_at DESC LIMIT 1"),
+		creator,
+	)
 	rowToPost(row, post)
 	return post
 }
@@ -207,7 +228,7 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 	separated := []string{}
 	preparedIndex := 1
 
-	deleteAndJoinUpsert = `
+	deleteAndJoinUpsert := `
          WITH deleted AS (
            %s
          ),
@@ -288,6 +309,7 @@ func checkAndAppendAssignment(
 func deleteOldTagsStatement(index *int) string {
 	statement := fmt.Sprintf(`DELETE FROM posts_tags WHERE post_id = $%d`, *index)
 	*index += 1
+
 	return statement
 }
 
@@ -298,10 +320,12 @@ func insertParamsString(tags []string, position int) string {
 		position++
 		statements = append(statements, row)
 	}
+
 	return strings.Join(statements, ",")
 }
 
 func rowToPost(rawPost pgx.Row, post *usecase.PostDto) {
+	fmt.Println(rawPost)
 	rawPost.Scan(
 		&post.Id, &post.Creator,
 		&post.Title, &post.Content,
