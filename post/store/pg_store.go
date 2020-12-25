@@ -22,27 +22,13 @@ var (
 	CreateTransactionError = errors.New(
 		"An error occurred when trying to create Create transaction",
 	)
-	ExecTransactionError = errors.New("An error occurred when trying to exec Create transaction")
+	ExecTransactionError = errors.New("An error occurred when trying to exec transaction")
 )
 
-const (
-	insertTag = `
-        INSERT INTO tags (tag_name) VALUES %s
-        ON CONFLICT (tag_name) DO NOTHING RETURNING id
-`
-
-	joinUpsert = `
-         WITH postids AS (
-           %s
-         ),
-         tagids AS (
-           %s
-         )
-
-         INSERT INTO posts_tags (post_id, tag_id)
-         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
-`
-)
+const insertTag = `
+         INSERT INTO tags (tag_name) VALUES %s
+         ON CONFLICT (tag_name) DO NOTHING RETURNING id
+      `
 
 func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 	db, err := pgxpool.Connect(ctx, url)
@@ -67,8 +53,8 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 	defer tx.Rollback(ctx)
 
 	_, err = tx.Exec(ctx, `
-        CREATE EXTENSION IF NOT EXISTS citext;
-        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+         CREATE EXTENSION IF NOT EXISTS citext;
+         CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
          CREATE OR REPLACE FUNCTION trigger_set_timestamp()
          RETURNS TRIGGER AS $$
@@ -116,6 +102,7 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	return tx.Commit(ctx)
 }
 
@@ -129,6 +116,18 @@ func (p *PgStore) Create(ctx context.Context,
 
 	postStatement := "INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id"
 	insertTagStatement := fmt.Sprintf(insertTag, insertParamsString(create.Tags, 4))
+
+	joinUpsert := `
+         WITH postids AS (
+           %s
+         ),
+         tagids AS (
+           %s
+         )
+
+         INSERT INTO posts_tags (post_id, tag_id)
+         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
+  `
 
 	statement := fmt.Sprintf(joinUpsert, postStatement, insertTagStatement)
 
@@ -144,6 +143,7 @@ func (p *PgStore) Create(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
+
 	err = tx.Commit(ctx)
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
@@ -172,6 +172,7 @@ func (p *PgStore) Update(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
+
 	return p.ReadOne(ctx, update.Id), nil
 }
 
@@ -206,6 +207,21 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 	separated := []string{}
 	preparedIndex := 1
 
+	deleteAndJoinUpsert = `
+         WITH deleted AS (
+           %s
+         ),
+         postids AS (
+           %s
+         ),
+         tagids AS (
+           %s
+         )
+
+         INSERT INTO posts_tags (post_id, tag_id)
+         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
+  `
+
 	deleteStatement := deleteOldTagsStatement(&preparedIndex)
 
 	checkAndAppendAssignment(
@@ -216,38 +232,46 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 	)
 
 	updateStatement := fmt.Sprintf(
-		"UPDATE posts SET %s WHERE id = $%d",
+		"UPDATE posts SET %s WHERE id = $%d RETURNING id",
 		strings.Join(separated, ","),
 		preparedIndex,
 	)
-	fmt.Println(updateStatement)
 
 	insertTagStatement := fmt.Sprintf(
 		insertTag,
-		insertParamsString(update.Tags, preparedIndex),
+		insertParamsString(update.Tags, preparedIndex+1),
 	)
 
-	tagPostStatement := fmt.Sprintf(joinUpsert, updateStatement, insertTagStatement)
+	tagPostStatement := fmt.Sprintf(
+		deleteAndJoinUpsert,
+		deleteStatement, updateStatement, insertTagStatement,
+	)
 
-	return fmt.Sprintf("%s; %s", deleteStatement, tagPostStatement)
+	return tagPostStatement
 }
 
 func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
 	params := make([]interface{}, 0)
+
 	id := update.Id
 	params = append(params, id)
+
 	content := update.Content
 	if content != "" {
 		params = append(params, content)
 	}
+
 	title := update.Title
 	if title != "" {
 		params = append(params, title)
 	}
+
 	params = append(params, id)
+
 	for _, tag := range update.Tags {
 		params = append(params, tag)
 	}
+
 	return params
 }
 
@@ -262,7 +286,7 @@ func checkAndAppendAssignment(
 }
 
 func deleteOldTagsStatement(index *int) string {
-	statement := fmt.Sprintf(`DELETE FROM posts_tags WHERE post_id = $%d;`, *index)
+	statement := fmt.Sprintf(`DELETE FROM posts_tags WHERE post_id = $%d`, *index)
 	*index += 1
 	return statement
 }
