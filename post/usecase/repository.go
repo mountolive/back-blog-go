@@ -8,18 +8,13 @@ import (
 	"time"
 )
 
-// Tag struct
-type Tag struct {
-	Name string
-}
-
 // Post entity representation
 type PostDto struct {
 	Id        string
 	Creator   string
 	Title     string
 	Content   string
-	Tags      []Tag
+	Tags      []string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

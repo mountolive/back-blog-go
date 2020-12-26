@@ -200,7 +200,11 @@ func testMainWrapper(m *testing.M) int {
 			},
 		},
 	}
+
 	container, err := pool.RunWithOptions(runOptions)
+	if err != nil {
+		log.Fatalf("An error occurred setting the container: %s", err)
+	}
 	defer func() {
 		if err := pool.Purge(container); err != nil {
 			pool.RemoveContainerByName(containerName)

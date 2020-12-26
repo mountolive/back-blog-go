@@ -35,7 +35,7 @@ const (
          SELECT
            id, p.creator, p.title, p.content, p.created_at, p.updated_at, t.tag_array
          FROM posts p LEFT OUTER JOIN (
-           SELECT pt.post_id AS id, array_agg(t.tag_name) AS tag_array
+           SELECT pt.post_id AS id, array_agg(t.tag_name)::text[] AS tag_array
            FROM posts_tags pt
            JOIN tags t ON t.id = pt.tag_id
            GROUP BY pt.post_id
@@ -220,6 +220,7 @@ func (p *PgStore) getNewestByCreator(ctx context.Context,
 		fmt.Sprintf(selectPost, "WHERE p.creator = $1 ORDER BY updated_at DESC LIMIT 1"),
 		creator,
 	)
+
 	rowToPost(row, post)
 	return post
 }
@@ -296,8 +297,8 @@ func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
 	return params
 }
 
-func checkAndAppendAssignment(
-	param, paramName string, separated *[]string, index *int) {
+func checkAndAppendAssignment(param, paramName string,
+	separated *[]string, index *int) {
 	if param != "" {
 		*separated = append(
 			*separated, fmt.Sprintf("%s = $%d", paramName, *index),
@@ -325,11 +326,11 @@ func insertParamsString(tags []string, position int) string {
 }
 
 func rowToPost(rawPost pgx.Row, post *usecase.PostDto) {
-	fmt.Println(rawPost)
 	rawPost.Scan(
 		&post.Id, &post.Creator,
 		&post.Title, &post.Content,
 		&post.CreatedAt, &post.UpdatedAt,
+		&post.Tags,
 	)
 }
 

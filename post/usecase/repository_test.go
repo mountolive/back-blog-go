@@ -272,7 +272,7 @@ func TestPostRepository(t *testing.T) {
 					require.True(t, post.Creator == "test", genericError, post.Creator, "test")
 					require.True(t, post.Content == "test", genericError, post.Content, "test")
 					firstTag := post.Tags[0]
-					require.True(t, firstTag.Name == tc.Dto.Tag, genericError, firstTag.Name, tc.Dto.Tag)
+					require.True(t, firstTag == tc.Dto.Tag, genericError, firstTag, tc.Dto.Tag)
 				}
 			})
 		}
