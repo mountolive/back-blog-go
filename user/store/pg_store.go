@@ -115,7 +115,7 @@ func (p *PgStore) Create(ctx context.Context,
 	}
 	tx.Commit(ctx)
 
-	return p.userByEmail(ctx, data.Email), nil
+	return p.userByEmail(ctx, data.Email)
 }
 
 // Updates the data associated to an User
@@ -139,7 +139,7 @@ func (p *PgStore) Update(ctx context.Context, id string,
 	}
 	tx.Commit(ctx)
 
-	return p.userById(ctx, id), nil
+	return p.userById(ctx, id)
 }
 
 // Updates a given User's Password
@@ -179,7 +179,7 @@ func (p *PgStore) UpdatePassword(ctx context.Context,
 // Retrieves a single User from DB,
 // through its Username or Email
 func (p *PgStore) ReadOne(ctx context.Context,
-	query *usecase.ByUsernameOrEmail) *usecase.UserDto {
+	query *usecase.ByUsernameOrEmail) (*usecase.UserDto, error) {
 	if query.Email == "" {
 		return p.userByUsername(ctx, query.Username)
 	}
@@ -199,8 +199,11 @@ func (p *PgStore) CheckIfCorrectPassword(ctx context.Context,
 
 func (p *PgStore) checkPasswordMatch(ctx context.Context,
 	emailOrUsername, password string,
-	retrieve func(context.Context, string) *usecase.UserDto) error {
-	user := retrieve(ctx, emailOrUsername)
+	retrieve func(context.Context, string) (*usecase.UserDto, error)) error {
+	user, err := retrieve(ctx, emailOrUsername)
+	if err != nil {
+		return wrapErrorInfo(err, "Error while checking password", "UserStore")
+	}
 	if user.Id == "" {
 		return fmt.Errorf("User was not found: %s", emailOrUsername)
 	}
@@ -214,28 +217,37 @@ func (p *PgStore) checkPasswordMatch(ctx context.Context,
 }
 
 func (p *PgStore) userByEmail(ctx context.Context,
-	email string) *usecase.UserDto {
+	email string) (*usecase.UserDto, error) {
 	rawUser := p.db.QueryRow(ctx, p.statementByField("email"), email)
 	user := &usecase.UserDto{}
-	rowToEntity(rawUser, user)
-	return user
+	err := rowToEntity(rawUser, user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (p *PgStore) userByUsername(ctx context.Context,
-	username string) *usecase.UserDto {
+	username string) (*usecase.UserDto, error) {
 	rawUser := p.db.QueryRow(ctx, p.statementByField("username"), username)
 	user := &usecase.UserDto{}
-	rowToEntity(rawUser, user)
-	return user
+	err := rowToEntity(rawUser, user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 
 }
 
 func (p *PgStore) userById(ctx context.Context,
-	id string) *usecase.UserDto {
+	id string) (*usecase.UserDto, error) {
 	rawUser := p.db.QueryRow(ctx, p.statementByField("id"), id)
 	user := &usecase.UserDto{}
-	rowToEntity(rawUser, user)
-	return user
+	err := rowToEntity(rawUser, user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (p *PgStore) statementByField(filter string) string {
@@ -247,8 +259,8 @@ func (p *PgStore) statementByField(filter string) string {
 	`, filter)
 }
 
-func rowToEntity(rawUser pgx.Row, user *usecase.UserDto) {
-	rawUser.Scan(&user.Id, &user.Email, &user.FirstName,
+func rowToEntity(rawUser pgx.Row, user *usecase.UserDto) error {
+	return rawUser.Scan(&user.Id, &user.Email, &user.FirstName,
 		&user.LastName, &user.Username,
 		&user.CreatedAt, &user.UpdatedAt)
 }

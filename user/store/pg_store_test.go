@@ -225,7 +225,8 @@ func TestPgStore(t *testing.T) {
 		firstChecker := &usecase.ByUsernameOrEmail{
 			Email: "test_read@gmail.com",
 		}
-		result := store.ReadOne(ctx, firstChecker)
+		result, err := store.ReadOne(ctx, firstChecker)
+		require.True(t, err == nil, "An error occurred while executing ReadOne, first: %s", err)
 		require.True(t, result != nil, "No instance was returned from read, first")
 		require.True(t, created.Id == result.Id, "User's Id was not properly created")
 		require.True(t, result.Email == created.Email, genericErr, result.Email, created.Email)
@@ -235,7 +236,8 @@ func TestPgStore(t *testing.T) {
 		secondChecker := &usecase.ByUsernameOrEmail{
 			Username: "test_read",
 		}
-		result = store.ReadOne(ctx, secondChecker)
+		result, err = store.ReadOne(ctx, secondChecker)
+		require.True(t, err == nil, "An error occurred while executing ReadOne, second: %s", err)
 		require.True(t, result != nil, "No instance was returned from read, second", err)
 		require.True(t, created.Id == result.Id, "User's Id was not properly created")
 		require.True(t, result.Email == created.Email, genericErr, result.Email, created.Email)
