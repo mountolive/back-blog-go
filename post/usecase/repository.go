@@ -60,7 +60,7 @@ type PostStore interface {
 	Create(context.Context, *CreatePostDto) (*PostDto, error)
 	Update(context.Context, *UpdatePostDto) (*PostDto, error)
 	Filter(context.Context, *GeneralFilter) ([]*PostDto, error)
-	ReadOne(context.Context, string) *PostDto
+	ReadOne(context.Context, string) (*PostDto, error)
 }
 
 // Basic contract intended to enforce sanitizing of content to avoid
@@ -138,7 +138,10 @@ func (r *PostRepository) GetPost(ctx context.Context, id string) (*PostDto, erro
 		return nil, r.logErrorAndWrap(err, "Context error")
 	}
 	defer cancel()
-	post := r.Store.ReadOne(ctx, id)
+	post, err := r.Store.ReadOne(ctx, id)
+	if err != nil {
+		return nil, r.logErrorAndWrap(err, "GetPost error")
+	}
 	if post.Id == "" {
 		return nil, r.logErrorAndWrap(PostNotFoundError, fmt.Sprintf("ID: %s.", id))
 	}

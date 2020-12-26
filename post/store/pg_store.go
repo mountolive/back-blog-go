@@ -23,6 +23,7 @@ var (
 	CreateTransactionError = errors.New("An error occurred when trying to create transaction")
 	ExecTransactionError   = errors.New("An error occurred when trying to exec transaction")
 	FilterError            = errors.New("An error occurred when trying to exec Filter query")
+	ReadOneError           = errors.New("An error occurred when trying to exec Read query")
 )
 
 const (
@@ -115,11 +116,11 @@ func (p *PgStore) Update(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
-	return p.ReadOne(ctx, update.Id), nil
+	return p.ReadOne(ctx, update.Id)
 }
 
 // Reads from the store the post with the passed Id
-func (p *PgStore) ReadOne(ctx context.Context, id string) *usecase.PostDto {
+func (p *PgStore) ReadOne(ctx context.Context, id string) (*usecase.PostDto, error) {
 	post := &usecase.PostDto{}
 	row := p.db.QueryRow(
 		ctx,
@@ -127,11 +128,10 @@ func (p *PgStore) ReadOne(ctx context.Context, id string) *usecase.PostDto {
 		id,
 	)
 	err := rowToPost(row, post)
-	// TODO Fix
 	if err != nil {
-		return nil
+		return nil, wrapErrorInfo(ReadOneError, err.Error())
 	}
-	return post
+	return post, nil
 }
 
 // Filters either by tags and/or creation date

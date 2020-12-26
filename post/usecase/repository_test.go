@@ -133,6 +133,17 @@ func TestPostRepository(t *testing.T) {
 				Repo:        repo,
 			},
 			{
+				Name:        "Store read error",
+				Description: "It should return wrap the error returned by the store",
+				Errored:     true,
+				Repo: &PostRepository{
+					Store:     &mockStoreReadErrored{},
+					Sanitizer: &mockSanitizer{},
+					Checker:   &mockErrorChecker{},
+					Logger:    logger,
+				},
+			},
+			{
 				Name:        "Post  not found",
 				Description: "It should return an error indicating the post was not found",
 				Errored:     true,
