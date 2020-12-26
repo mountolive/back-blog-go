@@ -27,8 +27,8 @@ func (m *mockStoreNotEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*Po
 	return []*PostDto{&PostDto{Creator: "test", Content: "test", Tags: []string{p.Tag}}}, nil
 }
 
-func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) *PostDto {
-	return &PostDto{Id: id, Creator: "bla", Content: "hello"}
+func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) (*PostDto, error) {
+	return &PostDto{Id: id, Creator: "bla", Content: "hello"}, nil
 }
 
 type mockStoreEmpty struct{}

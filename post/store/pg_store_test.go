@@ -163,7 +163,7 @@ func checkPostsByTag(t *testing.T, result *usecase.PostDto,
 	filteredPosts, err := store.Filter(context.Background(), filter)
 	found := len(filteredPosts)
 	require.True(t, err == nil,
-		"An error was returned. Not expected, Create's Filter")
+		"An error was returned. Not expected, Create's Filter %s", err)
 	require.True(t, found == 1, genericErr, found, 1)
 	require.True(t, filteredPosts[0].Id == result.Id,
 		"Created post doesn't match with found post")

@@ -142,7 +142,6 @@ func (r *PostRepository) GetPost(ctx context.Context, id string) (*PostDto, erro
 	if post.Id == "" {
 		return nil, r.logErrorAndWrap(PostNotFoundError, fmt.Sprintf("ID: %s.", id))
 	}
-
 	return post, nil
 }
 

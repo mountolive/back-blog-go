@@ -20,10 +20,9 @@ type PgStore struct {
 var (
 	ConnectionError        = errors.New("An error occurred when connecting to the DB")
 	TableCreationError     = errors.New("An error occurred when trying to create needed tables")
-	CreateTransactionError = errors.New(
-		"An error occurred when trying to create Create transaction",
-	)
-	ExecTransactionError = errors.New("An error occurred when trying to exec transaction")
+	CreateTransactionError = errors.New("An error occurred when trying to create transaction")
+	ExecTransactionError   = errors.New("An error occurred when trying to exec transaction")
+	FilterError            = errors.New("An error occurred when trying to exec Filter query")
 )
 
 const (
@@ -50,13 +49,11 @@ func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 	if err != nil {
 		return nil, wrapErrorInfo(ConnectionError, err.Error())
 	}
-
 	store := &PgStore{db}
 	err = store.createPostAndTagTable(ctx)
 	if err != nil {
 		return nil, wrapErrorInfo(TableCreationError, err.Error())
 	}
-
 	return store, nil
 }
 
@@ -68,10 +65,8 @@ func (p *PgStore) Create(ctx context.Context,
 		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
 	}
 	defer tx.Rollback(ctx)
-
 	postStatement := "INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id"
 	insertTagStatement := fmt.Sprintf(insertTag, insertParamsString(create.Tags, 4))
-
 	joinUpsert := `
          WITH postids AS (
            %s
@@ -83,9 +78,7 @@ func (p *PgStore) Create(ctx context.Context,
          INSERT INTO posts_tags (post_id, tag_id)
          SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
   `
-
 	statement := fmt.Sprintf(joinUpsert, postStatement, insertTagStatement)
-
 	params := make([]interface{}, 0)
 	params = append(params, create.Creator)
 	params = append(params, create.Title)
@@ -93,17 +86,14 @@ func (p *PgStore) Create(ctx context.Context,
 	for _, tag := range create.Tags {
 		params = append(params, tag)
 	}
-
 	_, err = tx.Exec(ctx, statement, params...)
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
-
 	err = tx.Commit(ctx)
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
-
 	return p.getNewestByCreator(ctx, create.Creator), nil
 }
 
@@ -115,20 +105,16 @@ func (p *PgStore) Update(ctx context.Context,
 		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
 	}
 	defer tx.Rollback(ctx)
-
 	statement := buildUpdateStatement(update)
 	params := buildUpdateParams(update)
-
 	_, err = tx.Exec(ctx, statement, params...)
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
-
 	err = tx.Commit(ctx)
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
-
 	return p.ReadOne(ctx, update.Id), nil
 }
 
@@ -140,15 +126,75 @@ func (p *PgStore) ReadOne(ctx context.Context, id string) *usecase.PostDto {
 		fmt.Sprintf(selectPost, "WHERE id = $1"),
 		id,
 	)
-	rowToPost(row, post)
+	err := rowToPost(row, post)
+	// TODO Fix
+	if err != nil {
+		return nil
+	}
 	return post
 }
 
-// Filters either by tags or creation date
+// Filters either by tags and/or creation date
 func (p *PgStore) Filter(ctx context.Context,
 	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
-	// TODO implement
-	return []*usecase.PostDto{}, nil
+	statementIdx := 1
+	whereClauseSegments := []string{}
+	params := make([]interface{}, 0)
+	if filter.Tag != "" {
+		whereClauseSegments = append(
+			whereClauseSegments,
+			fmt.Sprintf("t.tag_name	= $%d", statementIdx),
+		)
+		params = append(params, filter.Tag)
+		statementIdx += 1
+	}
+	if !filter.From.IsZero() {
+		whereClauseSegments = append(
+			whereClauseSegments,
+			fmt.Sprintf("p.created_at >= $%d", statementIdx),
+		)
+		params = append(params, filter.From)
+		statementIdx += 1
+	}
+	if !filter.To.IsZero() {
+		whereClauseSegments = append(
+			whereClauseSegments,
+			fmt.Sprintf("p.created_at <= $%d", statementIdx),
+		)
+		params = append(params, filter.To)
+		statementIdx += 1
+	}
+	var whereClause string
+	if len(params) > 0 {
+		whereClause = "WHERE " + strings.Join(whereClauseSegments, " AND ")
+	}
+	whereClause += fmt.Sprintf(
+		" LIMIT %d OFFSET %d",
+		filter.PageSize,
+		filter.Page,
+	)
+	filterStatement := fmt.Sprintf(
+		selectPost,
+		whereClause,
+	)
+	rows, err := p.db.Query(ctx, filterStatement, params...)
+	if err != nil {
+		return nil, wrapErrorInfo(FilterError, err.Error())
+	}
+	defer rows.Close()
+	posts := []*usecase.PostDto{}
+	for rows.Next() {
+		post := &usecase.PostDto{}
+		err = rowToPost(rows, post)
+		if err != nil {
+			return nil, wrapErrorInfo(FilterError, err.Error())
+		}
+		posts = append(posts, post)
+	}
+	if rows.Err() != nil {
+		return nil, wrapErrorInfo(FilterError, err.Error())
+	}
+	return posts, nil
 }
 
 func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
@@ -157,7 +203,6 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-
 	_, err = tx.Exec(ctx, `
          CREATE EXTENSION IF NOT EXISTS citext;
          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -208,7 +253,6 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
 	return tx.Commit(ctx)
 }
 
@@ -220,7 +264,6 @@ func (p *PgStore) getNewestByCreator(ctx context.Context,
 		fmt.Sprintf(selectPost, "WHERE p.creator = $1 ORDER BY updated_at DESC LIMIT 1"),
 		creator,
 	)
-
 	rowToPost(row, post)
 	return post
 }
@@ -228,7 +271,6 @@ func (p *PgStore) getNewestByCreator(ctx context.Context,
 func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 	separated := []string{}
 	preparedIndex := 1
-
 	deleteAndJoinUpsert := `
          WITH deleted AS (
            %s
@@ -243,57 +285,45 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
          INSERT INTO posts_tags (post_id, tag_id)
          SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
   `
-
 	deleteStatement := deleteOldTagsStatement(&preparedIndex)
-
 	checkAndAppendAssignment(
 		update.Content, "content", &separated, &preparedIndex,
 	)
 	checkAndAppendAssignment(
 		update.Title, "title", &separated, &preparedIndex,
 	)
-
 	updateStatement := fmt.Sprintf(
 		"UPDATE posts SET %s WHERE id = $%d RETURNING id",
 		strings.Join(separated, ","),
 		preparedIndex,
 	)
-
 	insertTagStatement := fmt.Sprintf(
 		insertTag,
 		insertParamsString(update.Tags, preparedIndex+1),
 	)
-
 	tagPostStatement := fmt.Sprintf(
 		deleteAndJoinUpsert,
 		deleteStatement, updateStatement, insertTagStatement,
 	)
-
 	return tagPostStatement
 }
 
 func buildUpdateParams(update *usecase.UpdatePostDto) []interface{} {
 	params := make([]interface{}, 0)
-
 	id := update.Id
 	params = append(params, id)
-
 	content := update.Content
 	if content != "" {
 		params = append(params, content)
 	}
-
 	title := update.Title
 	if title != "" {
 		params = append(params, title)
 	}
-
 	params = append(params, id)
-
 	for _, tag := range update.Tags {
 		params = append(params, tag)
 	}
-
 	return params
 }
 
@@ -310,7 +340,6 @@ func checkAndAppendAssignment(param, paramName string,
 func deleteOldTagsStatement(index *int) string {
 	statement := fmt.Sprintf(`DELETE FROM posts_tags WHERE post_id = $%d`, *index)
 	*index += 1
-
 	return statement
 }
 
@@ -321,12 +350,11 @@ func insertParamsString(tags []string, position int) string {
 		position++
 		statements = append(statements, row)
 	}
-
 	return strings.Join(statements, ",")
 }
 
-func rowToPost(rawPost pgx.Row, post *usecase.PostDto) {
-	rawPost.Scan(
+func rowToPost(rawPost pgx.Row, post *usecase.PostDto) error {
+	return rawPost.Scan(
 		&post.Id, &post.Creator,
 		&post.Title, &post.Content,
 		&post.CreatedAt, &post.UpdatedAt,
