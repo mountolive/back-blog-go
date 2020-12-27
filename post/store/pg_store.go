@@ -35,9 +35,9 @@ const (
          SELECT
            id, p.creator, p.title, p.content, p.created_at, p.updated_at, t.tag_array
          FROM posts p LEFT OUTER JOIN (
-           SELECT pt.post_id AS id, array_agg(t.tag_name)::text[] AS tag_array
+           SELECT pt.post_id AS id, array_agg(tg.tag_name)::text[] AS tag_array
            FROM posts_tags pt
-           JOIN tags t ON t.id = pt.tag_id
+           JOIN tags tg ON tg.id = pt.tag_id
            GROUP BY pt.post_id
          ) t USING (id)
          %s;
@@ -137,46 +137,8 @@ func (p *PgStore) ReadOne(ctx context.Context, id string) (*usecase.PostDto, err
 // Filters either by tags and/or creation date
 func (p *PgStore) Filter(ctx context.Context,
 	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
-	statementIdx := 1
-	whereClauseSegments := []string{}
 	params := make([]interface{}, 0)
-	if filter.Tag != "" {
-		whereClauseSegments = append(
-			whereClauseSegments,
-			fmt.Sprintf("t.tag_name	= $%d", statementIdx),
-		)
-		params = append(params, filter.Tag)
-		statementIdx += 1
-	}
-	if !filter.From.IsZero() {
-		whereClauseSegments = append(
-			whereClauseSegments,
-			fmt.Sprintf("p.created_at >= $%d", statementIdx),
-		)
-		params = append(params, filter.From)
-		statementIdx += 1
-	}
-	if !filter.To.IsZero() {
-		whereClauseSegments = append(
-			whereClauseSegments,
-			fmt.Sprintf("p.created_at <= $%d", statementIdx),
-		)
-		params = append(params, filter.To)
-		statementIdx += 1
-	}
-	var whereClause string
-	if len(params) > 0 {
-		whereClause = "WHERE " + strings.Join(whereClauseSegments, " AND ")
-	}
-	whereClause += fmt.Sprintf(
-		" LIMIT %d OFFSET %d",
-		filter.PageSize,
-		filter.Page,
-	)
-	filterStatement := fmt.Sprintf(
-		selectPost,
-		whereClause,
-	)
+	filterStatement := buildFilterStatement(filter, &params)
 	rows, err := p.db.Query(ctx, filterStatement, params...)
 	if err != nil {
 		return nil, wrapErrorInfo(FilterError, err.Error())
@@ -266,6 +228,55 @@ func (p *PgStore) getNewestByCreator(ctx context.Context,
 	)
 	rowToPost(row, post)
 	return post
+}
+
+func buildFilterStatement(
+	filter *usecase.GeneralFilter, params *[]interface{},
+) string {
+	statementIdx := 1
+	whereClauseSegments := []string{}
+	if filter.Tag != "" {
+		whereClauseSegments = append(
+			whereClauseSegments,
+			fmt.Sprintf(`
+         id IN (
+           SELECT post_id FROM posts_tags pt
+           JOIN tags t ON t.id = pt.tag_id
+           WHERE t.tag_name	= $%d
+         )
+      `,
+				statementIdx,
+			),
+		)
+		*params = append(*params, filter.Tag)
+		statementIdx += 1
+	}
+	if !filter.From.IsZero() {
+		whereClauseSegments = append(
+			whereClauseSegments,
+			fmt.Sprintf("p.created_at >= $%d", statementIdx),
+		)
+		*params = append(*params, filter.From)
+		statementIdx += 1
+	}
+	if !filter.To.IsZero() {
+		whereClauseSegments = append(
+			whereClauseSegments,
+			fmt.Sprintf("p.created_at <= $%d", statementIdx),
+		)
+		*params = append(*params, filter.To)
+		statementIdx += 1
+	}
+	var whereClause string
+	if len(*params) > 0 {
+		whereClause = "WHERE " + strings.Join(whereClauseSegments, " AND ")
+	}
+	whereClause += fmt.Sprintf(
+		" LIMIT %d OFFSET %d",
+		filter.PageSize,
+		filter.Page,
+	)
+	return fmt.Sprintf(selectPost, whereClause)
 }
 
 func buildUpdateStatement(update *usecase.UpdatePostDto) string {
