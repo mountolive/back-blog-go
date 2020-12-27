@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const genericErr = "\nGot: %s \n Expected: %s\n"
+const genericErr = "\nGot: %v \n Expected: %v\n"
 
 var store *PgStore
 
@@ -81,7 +81,7 @@ func TestPgStore(t *testing.T) {
 				Creator: "third",
 				Title:   "thirdT",
 				Content: "nope",
-				Tags:    []string{"tag7"},
+				Tags:    []string{"tag5"},
 			},
 		}
 		createdPosts := []*usecase.PostDto{}
@@ -89,41 +89,35 @@ func TestPgStore(t *testing.T) {
 			createdPosts = append(createdPosts, createPost(t, newPost))
 		}
 
-		applyAndCheckFilter := func(filter *usecase.GeneralFilter) {
+		applyAndCheckFilter := func(filter *usecase.GeneralFilter, expectedLen int) {
 			list, err := store.Filter(context.Background(), filter)
-			expectedLen := 2
 			require.True(t, err == nil, "Error while filtering posts %s", err)
 			require.True(t, list != nil, "Nil pointer for filtered posts slice")
 			actualLen := len(list)
 			require.True(t, actualLen == expectedLen, genericErr,
 				actualLen, expectedLen)
-			require.True(t, list[0].Creator != list[1].Creator,
-				"Creators should be different")
-			require.True(t, list[0].Content != list[1].Content,
-				"Content should be different")
-			includedContent := func(content string) bool {
-				return content == posts[0].Content || content == posts[1].Content
-			}
-			includedCreator := func(creator string) bool {
-				return creator == posts[0].Creator || creator == posts[1].Creator
-			}
-			for _, result := range list {
-				require.True(t, includedContent(result.Content), "Incorrect content %s: %s",
-					result.Id, result.Content)
-				require.True(t, includedCreator(result.Creator), "Incorrect creator %s: %s",
-					result.Id, result.Creator)
+			for i := 0; i < actualLen-1; i++ {
+				require.True(t, list[i].Creator != list[i+1].Creator,
+					"Creators should be different")
+				require.True(t, list[i].Content != list[i+1].Content,
+					"Content should be different")
 			}
 		}
 
 		postLength := len(posts)
 		tagFilter := &usecase.GeneralFilter{PageSize: postLength}
-		tagFilter.Tag = "tag1"
-		applyAndCheckFilter(tagFilter)
+		tagFilter.Tag = "tag5"
+		applyAndCheckFilter(tagFilter, 2)
 
 		dateFilter := &usecase.GeneralFilter{PageSize: postLength}
 		dateFilter.From = createdPosts[0].CreatedAt
 		dateFilter.To = createdPosts[1].CreatedAt
-		applyAndCheckFilter(dateFilter)
+		applyAndCheckFilter(dateFilter, 2)
+
+		mixFilter := tagFilter
+		mixFilter.From = createdPosts[0].CreatedAt
+		mixFilter.To = createdPosts[1].CreatedAt
+		applyAndCheckFilter(mixFilter, 1)
 	})
 
 	t.Run("ReadOne", func(t *testing.T) {
@@ -142,6 +136,9 @@ func TestPgStore(t *testing.T) {
 			found.Content, post.Content)
 		require.True(t, found.Creator == post.Creator, genericErr,
 			found.Creator, post.Creator)
+		for _, tag := range post.Tags {
+			checkPostsByTag(t, result, tag, 1)
+		}
 	})
 }
 
@@ -162,9 +159,9 @@ func checkPostsByTag(t *testing.T, result *usecase.PostDto,
 	filter := &usecase.GeneralFilter{PageSize: pageSize}
 	filter.Tag = tag
 	filteredPosts, err := store.Filter(context.Background(), filter)
-	found := len(filteredPosts)
 	require.True(t, err == nil,
 		"An error was returned. Not expected, Create's Filter %s", err)
+	found := len(filteredPosts)
 	require.True(t, found == 1, genericErr, found, 1)
 	require.True(t, filteredPosts[0].Id == result.Id,
 		"Created post doesn't match with found post")

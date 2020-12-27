@@ -29,7 +29,7 @@ var (
 const (
 	insertTag = `
          INSERT INTO tags (tag_name) VALUES %s
-         ON CONFLICT (tag_name) DO NOTHING RETURNING id
+         ON CONFLICT (tag_name) DO UPDATE SET tag_name = EXCLUDED.tag_name RETURNING id
   `
 	selectPost = `
          SELECT
@@ -41,6 +41,12 @@ const (
            GROUP BY pt.post_id
          ) t USING (id)
          %s;
+  `
+	insertPostTag = `
+         INSERT INTO posts_tags (post_id, tag_id)
+         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p
+         ON CONFLICT (post_id, tag_id)
+         DO UPDATE SET post_id=EXCLUDED.post_id, tag_id=EXCLUDED.tag_id;
   `
 )
 
@@ -76,10 +82,12 @@ func (p *PgStore) Create(ctx context.Context,
            %s
          )
 
-         INSERT INTO posts_tags (post_id, tag_id)
-         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
+         %s
   `
-	statement := fmt.Sprintf(joinUpsert, postStatement, insertTagStatement)
+	statement := fmt.Sprintf(
+		joinUpsert,
+		postStatement, insertTagStatement, insertPostTag,
+	)
 	params := make([]interface{}, 0)
 	params = append(params, create.Creator)
 	params = append(params, create.Title)
@@ -240,8 +248,8 @@ func buildFilterStatement(
 			whereClauseSegments,
 			fmt.Sprintf(`
          id IN (
-           SELECT post_id FROM posts_tags pt
-           JOIN tags t ON t.id = pt.tag_id
+           SELECT pt.post_id FROM posts_tags pt
+           LEFT OUTER JOIN tags t ON t.id = pt.tag_id
            WHERE t.tag_name	= $%d
          )
       `,
@@ -293,8 +301,7 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
            %s
          )
 
-         INSERT INTO posts_tags (post_id, tag_id)
-         SELECT p.id, t.id FROM tagids t CROSS JOIN postids p;
+         %s
   `
 	deleteStatement := deleteOldTagsStatement(&preparedIndex)
 	checkAndAppendAssignment(
@@ -314,7 +321,8 @@ func buildUpdateStatement(update *usecase.UpdatePostDto) string {
 	)
 	tagPostStatement := fmt.Sprintf(
 		deleteAndJoinUpsert,
-		deleteStatement, updateStatement, insertTagStatement,
+		deleteStatement, updateStatement,
+		insertTagStatement, insertPostTag,
 	)
 	return tagPostStatement
 }
