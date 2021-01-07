@@ -35,6 +35,14 @@ type updateUserCase struct {
 	ExpErr        error
 }
 
+type readUserCase struct {
+	Name          string
+	Description   string
+	Login         string
+	ContextCancel bool
+	ExpErr        error
+}
+
 func TestUserRepository(t *testing.T) {
 	genericErrMsg := "Got value: %v, Expected: %v"
 	happyPathStore := &happyPathUserStoreMock{}
@@ -288,6 +296,50 @@ func TestUserRepository(t *testing.T) {
 					dto.FirstName, tc.Dto.FirstName)
 				require.Equal(t, dto.LastName, tc.Dto.LastName, genericErrMsg,
 					dto.LastName, tc.Dto.LastName)
+			})
+		}
+	})
+
+	t.Run("Read User", func(t *testing.T) {
+		testLogin := "some@gmail.com"
+		validator := &trueValidator{}
+		testCases := []readUserCase{
+			{
+				Name:          "Context canceled",
+				Description:   "It should fail if the passed context is canceled",
+				Login:         testLogin,
+				ContextCancel: true,
+				ExpErr:        OperationCanceledError,
+			},
+			{
+				Name:        "User read success",
+				Description: "It should return the associated user",
+				Login:       testLogin,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.Name, func(t *testing.T) {
+				repo := &UserRepository{
+					Validator: validator,
+					Logger:    logger,
+					Store:     &happyPathUserStoreMock{tc.Login, tc.Login},
+				}
+				t.Log(tc.Description)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				if tc.ContextCancel {
+					cancel()
+				}
+				user, err := repo.ReadUser(ctx, tc.Login)
+				if tc.ExpErr != nil {
+					require.True(t, errors.Is(err, tc.ExpErr),
+						"Error should be of type OperationCanceled")
+					return
+				}
+				t.Log(err)
+				isExpected := user.Username == tc.Login || user.Email == tc.Login
+				require.True(t, isExpected,
+					"Returned user doesn't match the user to be looked up")
 			})
 		}
 	})

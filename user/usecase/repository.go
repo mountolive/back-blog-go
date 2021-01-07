@@ -122,6 +122,21 @@ type UserRepository struct {
 	Logger    Logger
 }
 
+// Reads an user either by her Username or by her Email
+func (r *UserRepository) ReadUser(ctx context.Context,
+	loginCred string) (*UserDto, error) {
+	ctx, cancel, err := checkContextAndRecreate(ctx)
+	if err != nil {
+		return nil, r.logErrorAndWrap(err, "Context canceled")
+	}
+	defer cancel()
+	byUsernameOrEmail := &ByUsernameOrEmail{
+		Username: loginCred,
+		Email:    loginCred,
+	}
+	return r.Store.ReadOne(ctx, byUsernameOrEmail)
+}
+
 // Changes password and persists. Returns an error on validation or
 // store's retrieval/persistence
 func (r *UserRepository) ChangePassword(ctx context.Context,

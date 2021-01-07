@@ -1,0 +1,55 @@
+syntax = "proto3"
+package user;
+
+import "google/protobuf/timestamp.proto";
+
+service User {
+  rpc Create (CreateUserRequest) returns (UserResponse) {}
+  rpc Update (UpdateUserRequest) returns (UserResponse) {}
+  rpc ChangePassword (ChangePasswordRequest) returns (ChangePasswordResponse) {}
+  rpc CheckUser (CheckUserRequest) returns (CheckUserResponse) {}
+}
+
+message UserResponse {
+	string id                           = 1;
+	string email                        = 2;
+	string username                     = 3;
+	string firstName                    = 4;
+	string lastName                     = 5;
+	google.protobuf.Timestamp createdAt = 6;
+	google.protobuf.Timestamp updatedAt = 7;
+}
+
+// Empty response for ChangePassword
+message ChangePasswordResponse {
+}
+
+// Empty response for CheckUser
+message CheckUserResponse {
+}
+
+message CreateUserRequest {
+	string email            = 1;
+	string username         = 2;
+	string password         = 3;
+	string repeatedPassword = 4;
+	string firstName        = 5;
+	string lastName         = 6;
+}
+
+message UpdateUserRequest {
+	string email            = 1;
+	string username         = 2;
+	string firstName        = 3;
+	string lastName         = 4;
+}
+
+message ChangePasswordRequest {
+	string email            = 1;
+	string username         = 2;
+	string password         = 3;
+}
+
+message CheckUserRequest {
+  string login = 1
+}
