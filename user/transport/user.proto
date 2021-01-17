@@ -1,4 +1,4 @@
-syntax = "proto3"
+syntax = "proto3";
 package user;
 
 import "google/protobuf/timestamp.proto";
@@ -51,5 +51,5 @@ message ChangePasswordRequest {
 }
 
 message CheckUserRequest {
-  string login = 1
+  string login = 1;
 }
