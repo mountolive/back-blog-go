@@ -1,0 +1,14 @@
+syntax = "proto3";
+package transport;
+
+service User {
+  rpc CheckUser (CheckUserRequest) returns (CheckUserResponse) {}
+}
+
+// Empty response for CheckUser
+message CheckUserResponse {
+}
+
+message CheckUserRequest {
+  string login = 1;
+}

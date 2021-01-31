@@ -1,5 +1,5 @@
 // Defines the corresponding store associated to posts, with Postgres
-package store
+package pgstore
 
 import (
 	"context"

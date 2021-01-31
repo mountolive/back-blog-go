@@ -1,5 +1,5 @@
 // Defines the Storage details associated with an User
-package store
+package pgstore
 
 import (
 	"context"
