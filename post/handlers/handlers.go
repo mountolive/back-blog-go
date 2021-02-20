@@ -36,11 +36,6 @@ type UpdatePostCommandHandler struct {
 	repo usecase.PostRepository
 }
 
-var (
-	_ CommandHandler = CreatePostCommandHandler{}
-	_ CommandHandler = UpdatePostCommandHandler{}
-)
-
 // Handle has the requirements to create a Post, according to the Params passed
 func (c CreatePostCommandHandler) Handle(ctx context.Context, p Params) (*usecase.PostDto, error) {
 	// TODO Implement
