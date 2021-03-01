@@ -53,8 +53,8 @@ func TestPgStore(t *testing.T) {
 		}
 		updated, err := store.Update(context.Background(),
 			updatedPost)
-		require.True(t, err == nil, "Error was returned. Update %s", err)
-		require.True(t, updated != nil, "No entity returned, Update")
+		require.NoError(t, err, "Error was returned. Update %s", err)
+		require.NotNil(t, updated, "No entity returned, Update")
 		require.True(t, updated.Id == result.Id, "Ids not matching after update")
 		require.True(t, updated.Content == updatedPost.Content, "Content not updated")
 		require.True(t, updated.Title == updatedPost.Title, "Title not updated")
@@ -130,8 +130,8 @@ func TestPgStore(t *testing.T) {
 		result := createPost(t, post)
 
 		found, err := store.ReadOne(context.Background(), result.Id)
-		require.True(t, err == nil, "An error occurred in ReadOne: %s", err)
-		require.True(t, found != nil, "Post not found by the passed Id. ReadOne")
+		require.NoError(t, err, "An error occurred in ReadOne: %s", err)
+		require.NotNil(t, found, "Post not found by the passed Id. ReadOne")
 		require.True(t, found.Content == post.Content, genericErr,
 			found.Content, post.Content)
 		require.True(t, found.Creator == post.Creator, genericErr,
@@ -145,7 +145,7 @@ func TestPgStore(t *testing.T) {
 func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.PostDto {
 	result, err := store.Create(context.Background(), post)
 	require.True(t, err == nil, "An error was returned. Not expected: %s, Create", err)
-	require.True(t, result != nil, "No entity was returned from Create")
+	require.NotNil(t, result, "No entity was returned from Create")
 	require.True(t, result.Id != "", "Id was empty, error creating the Post")
 	require.True(t, result.Creator == post.Creator, genericErr,
 		result.Creator, post.Creator)
@@ -205,7 +205,7 @@ func testMainWrapper(m *testing.M) int {
 	}
 	defer func() {
 		if err := pool.Purge(container); err != nil {
-			pool.RemoveContainerByName(containerName)
+			_ = pool.RemoveContainerByName(containerName)
 			log.Fatalf("Error purging the container: %s\n", err)
 		}
 	}()
@@ -221,7 +221,7 @@ func testMainWrapper(m *testing.M) int {
 		return err
 	}
 	if err := pool.Retry(retryFunc); err != nil {
-		pool.RemoveContainerByName(containerName)
+		_ = pool.RemoveContainerByName(containerName)
 		log.Fatalf("An error occurred initializing the db: %s\n", err)
 	}
 

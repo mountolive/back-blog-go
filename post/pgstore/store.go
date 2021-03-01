@@ -71,7 +71,9 @@ func (p *PgStore) Create(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 	postStatement := "INSERT INTO posts (creator, title, content) VALUES ($1, $2, $3) RETURNING id"
 	insertTagStatement := fmt.Sprintf(insertTag, insertParamsString(create.Tags, 4))
 	joinUpsert := `
@@ -113,7 +115,9 @@ func (p *PgStore) Update(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 	statement := buildUpdateStatement(update)
 	params := buildUpdateParams(update)
 	_, err = tx.Exec(ctx, statement, params...)
@@ -172,7 +176,9 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 	_, err = tx.Exec(ctx, `
          CREATE EXTENSION IF NOT EXISTS citext;
          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -234,7 +240,10 @@ func (p *PgStore) getNewestByCreator(ctx context.Context,
 		fmt.Sprintf(selectPost, "WHERE p.creator = $1 ORDER BY updated_at DESC LIMIT 1"),
 		creator,
 	)
-	rowToPost(row, post)
+	err := rowToPost(row, post)
+	if err != nil {
+		return nil
+	}
 	return post
 }
 
@@ -273,7 +282,6 @@ func buildFilterStatement(
 			fmt.Sprintf("p.created_at <= $%d", statementIdx),
 		)
 		*params = append(*params, filter.To)
-		statementIdx += 1
 	}
 	var whereClause string
 	if len(*params) > 0 {

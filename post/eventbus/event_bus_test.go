@@ -1,0 +1,36 @@
+package eventbus
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestEventHandler(t *testing.T) {
+	t.Run("NewEventHandler", func(t *testing.T) {
+		t.Parallel()
+		bus := NewEventBus()
+		require.NotNil(t, bus)
+	})
+
+	t.Run("Register and Resolve", func(t *testing.T) {
+		t.Parallel()
+		bus := NewEventBus()
+		eventName := "life on mars"
+		var cmdHandler CommandHandler
+		cmdHandler = &mockErroredCommandHandler{}
+		err := bus.Register(eventName, cmdHandler)
+		require.NoError(t, err)
+		event := &testEvent{name: eventName}
+		ctx := context.Background()
+		err = bus.Resolve(ctx, event)
+		require.True(t, errors.Is(err, ErrCommandHandler))
+		cmdHandler = &mockCommandHandler{}
+		err = bus.Register(eventName, cmdHandler)
+		require.NoError(t, err)
+		err = bus.Resolve(ctx, event)
+		require.NoError(t, err)
+	})
+}
