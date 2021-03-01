@@ -21,15 +21,13 @@ func TestEventHandler(t *testing.T) {
 		eventName := "life on mars"
 		var cmdHandler CommandHandler
 		cmdHandler = &mockErroredCommandHandler{}
-		err := bus.Register(eventName, cmdHandler)
-		require.NoError(t, err)
+		bus.Register(eventName, cmdHandler)
 		event := &testEvent{name: eventName}
 		ctx := context.Background()
-		err = bus.Resolve(ctx, event)
+		err := bus.Resolve(ctx, event)
 		require.True(t, errors.Is(err, ErrCommandHandler))
 		cmdHandler = &mockCommandHandler{}
-		err = bus.Register(eventName, cmdHandler)
-		require.NoError(t, err)
+		bus.Register(eventName, cmdHandler)
 		err = bus.Resolve(ctx, event)
 		require.NoError(t, err)
 	})

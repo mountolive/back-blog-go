@@ -3,6 +3,7 @@ package eventbus
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -31,18 +32,23 @@ type EventBus struct {
 
 // NewEventBus creates an EventHandler
 func NewEventBus() *EventBus {
-	// TODO Implement
-	return nil
+	return &EventBus{handlers: make(map[string]CommandHandler)}
 }
 
 // Resolve passes an event using its corresponding CommandHandler
 func (e EventBus) Resolve(ctx context.Context, event Event) error {
-	// TODO Implement
+	handler, ok := e.handlers[event.Name()]
+	if !ok {
+		return ErrEventNotRegistered
+	}
+	err := handler.Handle(ctx, event)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrCommandHandler, err)
+	}
 	return nil
 }
 
 // Register associates an Event with a given CommandHandler
-func (e *EventBus) Register(eventName string, cmdHandler CommandHandler) error {
-	// TODO Implement
-	return nil
+func (e *EventBus) Register(eventName string, cmdHandler CommandHandler) {
+	e.handlers[eventName] = cmdHandler
 }
