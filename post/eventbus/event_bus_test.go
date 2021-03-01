@@ -15,7 +15,7 @@ func TestEventHandler(t *testing.T) {
 		require.NotNil(t, bus)
 	})
 
-	t.Run("Register and Resolve", func(t *testing.T) {
+	t.Run("Register", func(t *testing.T) {
 		t.Parallel()
 		bus := NewEventBus()
 		eventName := "life on mars"
@@ -30,5 +30,13 @@ func TestEventHandler(t *testing.T) {
 		bus.Register(eventName, cmdHandler)
 		err = bus.Resolve(ctx, event)
 		require.NoError(t, err)
+	})
+
+	t.Run("Resolve", func(t *testing.T) {
+		t.Parallel()
+		bus := NewEventBus()
+		err := bus.Resolve(context.Background(), &testEvent{name: "not-existing"})
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrEventNotRegistered))
 	})
 }
