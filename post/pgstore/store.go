@@ -18,12 +18,12 @@ type PgStore struct {
 }
 
 var (
-	ConnectionError        = errors.New("An error occurred when connecting to the DB")
-	TableCreationError     = errors.New("An error occurred when trying to create needed tables")
-	CreateTransactionError = errors.New("An error occurred when trying to create transaction")
-	ExecTransactionError   = errors.New("An error occurred when trying to exec transaction")
-	FilterError            = errors.New("An error occurred when trying to exec Filter query")
-	ReadOneError           = errors.New("An error occurred when trying to exec Read query")
+	ConnectionError        = errors.New("error occurred when connecting to the DB")
+	TableCreationError     = errors.New("error occurred when trying to create needed tables")
+	CreateTransactionError = errors.New("error occurred when trying to create transaction")
+	ExecTransactionError   = errors.New("error occurred when trying to exec transaction")
+	FilterError            = errors.New("error occurred when trying to exec Filter query")
+	ReadOneError           = errors.New("error occurred when trying to exec Read query")
 )
 
 const (

@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	ConnectionError    = errors.New("An error occurred when connecting to the DB")
-	TableCreationError = errors.New("An error occurred when trying to create the table")
+	ConnectionError    = errors.New("error occurred when connecting to the DB")
+	TableCreationError = errors.New("error occurred when trying to create the table")
 )
 
 // Store implementation that uses Postgres for persistence
@@ -236,7 +236,6 @@ func (p *PgStore) userByUsername(ctx context.Context,
 		return nil, err
 	}
 	return user, nil
-
 }
 
 func (p *PgStore) userById(ctx context.Context,

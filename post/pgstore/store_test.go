@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/mountolive/back-blog-go/post/usecase"
 	"github.com/ory/dockertest"
 	"github.com/ory/dockertest/docker"
@@ -168,7 +169,10 @@ func checkPostsByTag(t *testing.T, result *usecase.PostDto,
 }
 
 func testMainWrapper(m *testing.M) int {
-	var err error
+	err := godotenv.Load("../.env.test")
+	if err != nil {
+		log.Println("dotenv file not found")
+	}
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		log.Fatalf("Error starting docker: %s\n", err)
@@ -205,8 +209,12 @@ func testMainWrapper(m *testing.M) int {
 	}
 	defer func() {
 		if err := pool.Purge(container); err != nil {
+			err2 := pool.RemoveContainerByName(containerName)
+			if err2 != nil {
+				log.Fatalf("error removing the container: %s\n", err2)
+			}
 			_ = pool.RemoveContainerByName(containerName)
-			log.Fatalf("Error purging the container: %s\n", err)
+			log.Fatalf("error purging the container: %s\n", err)
 		}
 	}()
 
@@ -221,7 +229,10 @@ func testMainWrapper(m *testing.M) int {
 		return err
 	}
 	if err := pool.Retry(retryFunc); err != nil {
-		_ = pool.RemoveContainerByName(containerName)
+		err2 := pool.RemoveContainerByName(containerName)
+		if err2 != nil {
+			log.Fatalf("error removing the container: %s\n", err2)
+		}
 		log.Fatalf("An error occurred initializing the db: %s\n", err)
 	}
 
