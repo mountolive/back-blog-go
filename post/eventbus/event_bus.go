@@ -35,7 +35,7 @@ func NewEventBus() *EventBus {
 	return &EventBus{handlers: make(map[string]CommandHandler)}
 }
 
-// Resolve passes an event using its corresponding CommandHandler
+// Resolve passes an event and executes its corresponding CommandHandler
 func (e EventBus) Resolve(ctx context.Context, event Event) error {
 	handler, ok := e.handlers[event.Name()]
 	if !ok {
