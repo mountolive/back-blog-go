@@ -128,6 +128,7 @@ func (n *NATSBroker) Process(ctx context.Context) <-chan error {
 			select {
 			case <-ctx.Done():
 				errChan <- wrapError(ErrContextCanceled, ctx.Err().Error())
+				return
 			case msg := <-n.messagesChan:
 				event := Message{
 					data: msg.Data,

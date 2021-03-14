@@ -133,11 +133,15 @@ func TestNATSBroker(t *testing.T) {
 		require.NoError(t, err)
 
 		produceMsg := func(n int) error {
+			if producerConn.IsClosed() {
+				return errors.New("connection closed")
+			}
 			return producerConn.Publish(
 				conf.subscriptionName,
 				[]byte(fmt.Sprintf(basicMsg, n)),
 			)
 		}
+		timeout := 2 * time.Second
 
 		brokerWithInitializedSubscription := func(bus EventBus) *NATSBroker {
 			broker, err := NewNATSBroker(bus, conf)
@@ -152,25 +156,32 @@ func TestNATSBroker(t *testing.T) {
 			broker := brokerWithInitializedSubscription(erroredBus)
 			err = produceMsg(0)
 			require.NoError(t, err)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
-			err = <-broker.Process(ctx)
-			require.True(t, errors.Is(err, ErrEventBus))
+			errCount := 0
+			for err := range broker.Process(ctx) {
+				fmt.Println("Error from EventBus:", err)
+				errCount++
+			}
+			require.Equal(t, 2, errCount)
 		})
 
 		t.Run("Message consumption", func(t *testing.T) {
 			broker := brokerWithInitializedSubscription(notErroredBus)
 			var err error
-			for i := 1; i < 101; i++ {
+			for i := 1; i < 11; i++ {
 				err = produceMsg(i)
 				require.NoError(t, err)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
-			err = <-broker.Process(ctx)
-			require.True(t, errors.Is(err, ErrContextCanceled))
-			require.Equal(t, 100, notErroredBus.timesCalled)
-			notErroredBus.timesCalled = 0
+			errCount := 0
+			for err := range broker.Process(ctx) {
+				fmt.Println("Message consumption", err)
+				errCount++
+			}
+			require.Equal(t, 10, notErroredBus.timesCalled)
+			require.Equal(t, 1, errCount)
 		})
 	})
 }
