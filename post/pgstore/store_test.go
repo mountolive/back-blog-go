@@ -229,9 +229,9 @@ func testMainWrapper(m *testing.M) int {
 		return err
 	}
 	if err := pool.Retry(retryFunc); err != nil {
-		err2 := pool.RemoveContainerByName(containerName)
-		if err2 != nil {
-			log.Fatalf("error removing the container: %s\n", err2)
+		errRemove := pool.RemoveContainerByName(containerName)
+		if errRemove != nil {
+			log.Fatalf("error removing the container: %s\n", errRemove)
 		}
 		log.Fatalf("An error occurred initializing the db: %s\n", err)
 	}

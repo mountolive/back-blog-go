@@ -1,0 +1,2 @@
+- Abstract away container creation for integration tests
+- Rename *Dto to DTO

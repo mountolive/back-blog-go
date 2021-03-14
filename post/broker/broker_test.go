@@ -20,25 +20,21 @@ func testMainWrapper(m *testing.M) int {
 		log.Fatalf("error starting docker: %s\n", err)
 	}
 
-	hostIP := "0.0.0.0"
 	containerName := "blog_post_nats"
-
 	basePort := "4222"
-	portBindings := make(map[docker.Port][]docker.PortBinding)
-	for _, port := range []string{basePort, "6222", "8222"} {
-		portBindings[docker.Port(port)] = []docker.PortBinding{
-			{
-				HostIP:   hostIP,
-				HostPort: port,
-			},
-		}
-	}
-
 	runOptions := &dockertest.RunOptions{
 		Repository:   "nats",
 		Tag:          "2.1",
 		Name:         containerName,
-		PortBindings: portBindings,
+		ExposedPorts: []string{basePort},
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			docker.Port(basePort): {
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: basePort,
+				},
+			},
+		},
 	}
 
 	container, err := pool.RunWithOptions(runOptions)
@@ -47,9 +43,9 @@ func testMainWrapper(m *testing.M) int {
 	}
 	defer func() {
 		if err := pool.Purge(container); err != nil {
-			err2 := pool.RemoveContainerByName(containerName)
-			if err2 != nil {
-				log.Fatalf("error removing the container: %s\n", err2)
+			errRemove := pool.RemoveContainerByName(containerName)
+			if errRemove != nil {
+				log.Fatalf("error removing the container: %s\n", errRemove)
 			}
 			_ = pool.RemoveContainerByName(containerName)
 			log.Fatalf("error purging the container: %s\n", err)
