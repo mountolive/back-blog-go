@@ -29,15 +29,15 @@ func TestNATSConfig(t *testing.T) {
 			port := uint16(16661)
 			host := "localhost"
 			expectedURL := fmt.Sprintf("nats://%s:%s@%s:%d", user, pass, host, port)
-			actualURL := NewNATSConfig(user, pass, host, port).URL()
+			actualURL := NewNATSConfig(user, pass, "any", host, port).URL()
 			require.Equal(t, expectedURL, actualURL)
 		})
 
 		t.Run("Zero values", func(t *testing.T) {
 			expectedURL := nats.DefaultURL
-			actualURL := NewNATSConfig("", "", "", 0).URL()
+			actualURL := NewNATSConfig("", "", "blaaa", "", 0).URL()
 			require.Equal(t, expectedURL, actualURL)
-			require.Equal(t, expectedURL, DefaultNATSConfig().URL())
+			require.Equal(t, expectedURL, DefaultNATSConfig("something").URL())
 		})
 	})
 }
@@ -50,11 +50,14 @@ func (mockEvent) Name() string { return "ready for my close-up" }
 
 func (mockEvent) Params() eventbus.Params { return nil }
 
-var _ EventBus = mockNonErroredEventBus{}
+var _ EventBus = &mockNonErroredEventBus{}
 
-type mockNonErroredEventBus struct{}
+type mockNonErroredEventBus struct {
+	timesCalled int
+}
 
-func (mockNonErroredEventBus) Resolve(context.Context, eventbus.Event) error {
+func (m *mockNonErroredEventBus) Resolve(context.Context, eventbus.Event) error {
+	m.timesCalled++
 	return nil
 }
 
@@ -69,20 +72,22 @@ func (m mockErroredEventBus) Resolve(context.Context, eventbus.Event) error {
 }
 
 func TestNATSBroker(t *testing.T) {
-	erroredBus := mockErroredEventBus{}
-	notErroredBus := mockNonErroredEventBus{}
+	mockErr := errors.New("I exploded")
+	erroredBus := mockErroredEventBus{mockErr}
+	notErroredBus := &mockNonErroredEventBus{}
+
 	t.Run("NewNATSBroker", func(t *testing.T) {
 		t.Parallel()
 
 		t.Run("Connection error", func(t *testing.T) {
-			conf := NewNATSConfig("badU", "badP", "badH", uint16(3333))
+			conf := NewNATSConfig("badU", "badP", "any", "badH", uint16(3333))
 			_, err := NewNATSBroker(notErroredBus, conf)
 			require.Error(t, err)
 			require.True(t, errors.Is(err, ErrNATSServerConnection))
 		})
 
 		t.Run("Correct initialization", func(t *testing.T) {
-			conf := DefaultNATSConfig()
+			conf := DefaultNATSConfig("some")
 			broker, err := NewNATSBroker(notErroredBus, conf)
 			require.NoError(t, err)
 			require.NotNil(t, broker)
@@ -91,15 +96,74 @@ func TestNATSBroker(t *testing.T) {
 		})
 	})
 
-	t.Run("ProcessMessages", func(t *testing.T) {
+	t.Run("StartSubscription", func(t *testing.T) {
 		t.Parallel()
-		conf := DefaultNATSConfig()
 
-		t.Run("Error from EventBus", func(t *testing.T) {
-			broker, err := NewNATSBroker(erroredBus, conf)
+		initializeBroker := func() *NATSBroker {
+			conf := DefaultNATSConfig("bla")
+			broker, err := NewNATSBroker(notErroredBus, conf)
 			require.NoError(t, err)
 			require.NotNil(t, broker)
-			// TODO keep checking here
+			return broker
+		}
+
+		t.Run("Error starting subscription", func(t *testing.T) {
+			broker := initializeBroker()
+			broker.CloseConnection()
+			err := broker.StartSubscription()
+			require.True(t, errors.Is(err, ErrNATSubscription))
+		})
+
+		t.Run("Correct initialization", func(t *testing.T) {
+			broker := initializeBroker()
+			err := broker.StartSubscription()
+			require.NoError(t, err)
+		})
+	})
+
+	t.Run("ProcessMessages", func(t *testing.T) {
+		t.Parallel()
+
+		basicMsg := "some message %d"
+		conf := DefaultNATSConfig("bla")
+		producerConn, err := nats.Connect(conf.URL())
+		require.NoError(t, err)
+
+		produceMsg := func(n int) error {
+			return producerConn.Publish(
+				conf.subscriptionName,
+				[]byte(fmt.Sprintf(basicMsg, n)),
+			)
+		}
+
+		brokerWithInitializedSubscription := func(bus EventBus) *NATSBroker {
+			broker, err := NewNATSBroker(bus, conf)
+			require.NoError(t, err)
+			require.NotNil(t, broker)
+			err = broker.StartSubscription()
+			require.NoError(t, err)
+			return broker
+		}
+
+		t.Run("Error from EventBus", func(t *testing.T) {
+			broker := brokerWithInitializedSubscription(erroredBus)
+			err = produceMsg(0)
+			require.NoError(t, err)
+			err = broker.Process(context.Background())
+			require.True(t, errors.Is(err, ErrEventBus))
+		})
+
+		t.Run("Message consumption", func(t *testing.T) {
+			broker := brokerWithInitializedSubscription(notErroredBus)
+			var err error
+			for i := 1; i < 101; i++ {
+				err = produceMsg(i)
+				require.NoError(t, err)
+			}
+			err = broker.Process(context.Background())
+			require.NoError(t, err)
+			require.Len(t, notErroredBus.timesCalled, 100)
+			notErroredBus.timesCalled = 0
 		})
 	})
 }

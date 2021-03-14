@@ -9,9 +9,15 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// ErrNATSServerConnection indicates that there was an error when connection to
-// the NATS server
-var ErrNATSServerConnection = errors.New("nats server error connection")
+var (
+	// ErrNATSServerConnection indicates that there was an error when connection to
+	// the NATS server
+	ErrNATSServerConnection = errors.New("NATS server error connection")
+	// ErrNATSubscription indicates than an error occurred when triggering subscription
+	ErrNATSubscription = errors.New("NATS subscription failed")
+	// ErrEventBus
+	ErrEventBus = errors.New("event bus error")
+)
 
 // EventBus is the needed functionality from the corresponding Broker
 type EventBus interface {
@@ -20,8 +26,10 @@ type EventBus interface {
 
 // NATSBroker implementation of a Broker on top of NATS (https://nats.io/)
 type NATSBroker struct {
-	bus  EventBus
-	conn *nats.Conn
+	bus          EventBus
+	conn         *nats.Conn
+	conf         NATSConfig
+	messagesChan chan *nats.Msg
 }
 
 // NATSConfig is the basic configuration for a NATS connection
@@ -29,18 +37,22 @@ type NATSConfig struct {
 	port uint16
 	user,
 	pass,
+	subscriptionName,
 	host string
 	opts []nats.Option
 }
 
 // NewNATSConfig is a standard constructor
-func NewNATSConfig(usr, pwd, h string, p uint16, opts ...nats.Option) NATSConfig {
+func NewNATSConfig(
+	usr, pwd, subsName, h string, p uint16, opts ...nats.Option,
+) NATSConfig {
 	return NATSConfig{
-		user: usr,
-		pass: pwd,
-		host: h,
-		port: p,
-		opts: opts,
+		user:             usr,
+		pass:             pwd,
+		subscriptionName: subsName,
+		host:             h,
+		port:             p,
+		opts:             opts,
 	}
 }
 
@@ -60,12 +72,14 @@ func (n NATSConfig) URL() string {
 }
 
 // DefaultNATSConfig returns a standard configuration for a barebones NATS server
-func DefaultNATSConfig() NATSConfig {
+// for the passed subscription's name
+func DefaultNATSConfig(subsName string) NATSConfig {
 	return NATSConfig{
-		user: "",
-		pass: "",
-		host: "",
-		port: 0,
+		user:             "",
+		pass:             "",
+		subscriptionName: subsName,
+		host:             "",
+		port:             0,
 	}
 }
 
@@ -75,7 +89,22 @@ func NewNATSBroker(bus EventBus, conf NATSConfig) (*NATSBroker, error) {
 	if err != nil {
 		return nil, wrapError(ErrNATSServerConnection, err.Error())
 	}
-	return &NATSBroker{bus: bus, conn: conn}, nil
+	broker := &NATSBroker{
+		bus:          bus,
+		conn:         conn,
+		conf:         conf,
+		messagesChan: make(chan *nats.Msg),
+	}
+	return broker, nil
+}
+
+// StartSubscription starts the associated subscription
+func (n *NATSBroker) StartSubscription() error {
+	_, err := n.conn.ChanSubscribe(n.conf.subscriptionName, n.messagesChan)
+	if err != nil {
+		return wrapError(ErrNATSubscription, err.Error())
+	}
+	return nil
 }
 
 // CloseConnection closes the underlying NATS connection;
@@ -84,8 +113,8 @@ func (n *NATSBroker) CloseConnection() {
 	n.conn.Close()
 }
 
-// ProcessMessages starts consuming messages from a given subscription
-func (n *NATSBroker) ProcessMessages(context.Context) error {
+// ProcessMessages starts cosuming messages from a given subscription
+func (n *NATSBroker) Process(context.Context) error {
 	// TODO Implement
 	return nil
 }
