@@ -2,10 +2,14 @@ package broker
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/mountolive/back-blog-go/post/eventbus"
 	"github.com/nats-io/nats.go"
 )
+
+var ErrNATSServerConnection = errors.New("nats server error connection")
 
 // EventBus is the needed functionality from the corresponding Broker
 type EventBus interface {
@@ -35,14 +39,33 @@ func NewNATSConfig(
 	return NATSConfig{}
 }
 
-// NewNATSBroker is a standard constructor
-func NewNATSBroker(bus EventBus, conf NATSConfig) *NATSBroker {
+func (n NATSConfig) URL() string {
 	// TODO Implement
-	return nil
+	return ""
+}
+
+// DefaultNATSConfig returns a standard configuration for a barebones NATS server
+func DefaultNATSConfig() NATSConfig {
+	return NATSConfig{
+		user: "",
+		pass: "",
+		host: "",
+		port: 0,
+	}
+}
+
+// NewNATSBroker is a standard constructor
+func NewNATSBroker(bus EventBus, conf NATSConfig) (*NATSBroker, error) {
+	// TODO Implement
+	return nil, nil
 }
 
 // ProcessMessages starts consuming messages from a given subscription
 func ProcessMessages(context.Context) error {
 	// TODO Implement
 	return nil
+}
+
+func wrapError(err error, msg string) error {
+	return fmt.Errorf("%w: %s", err, msg)
 }
