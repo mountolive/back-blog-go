@@ -20,8 +20,8 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/nats-io/nats.go v1.10.0
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/ory/dockertest v3.3.5+incompatible
+	github.com/ory/dockertest/v3 v3.6.3
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
 	google.golang.org/grpc v1.35.0

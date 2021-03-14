@@ -15,55 +15,55 @@ func (m *mockLogger) LogError(err error) {
 
 type mockStoreNotEmpty struct{}
 
-func (m *mockStoreNotEmpty) Create(ctx context.Context, p *CreatePostDto) (*PostDto, error) {
-	return &PostDto{Creator: p.Creator, Content: p.Content}, nil
+func (m *mockStoreNotEmpty) Create(ctx context.Context, p *CreatePostDto) (*Post, error) {
+	return &Post{Creator: p.Creator, Content: p.Content}, nil
 }
 
-func (m *mockStoreNotEmpty) Update(ctx context.Context, p *UpdatePostDto) (*PostDto, error) {
-	return &PostDto{Id: p.Id, Creator: "test", Content: p.Content}, nil
+func (m *mockStoreNotEmpty) Update(ctx context.Context, p *UpdatePostDto) (*Post, error) {
+	return &Post{Id: p.Id, Creator: "test", Content: p.Content}, nil
 }
 
-func (m *mockStoreNotEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*PostDto, error) {
-	return []*PostDto{&PostDto{Creator: "test", Content: "test", Tags: []string{p.Tag}}}, nil
+func (m *mockStoreNotEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*Post, error) {
+	return []*Post{&Post{Creator: "test", Content: "test", Tags: []string{p.Tag}}}, nil
 }
 
-func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) (*PostDto, error) {
-	return &PostDto{Id: id, Creator: "bla", Content: "hello"}, nil
+func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) (*Post, error) {
+	return &Post{Id: id, Creator: "bla", Content: "hello"}, nil
 }
 
 type mockStoreEmpty struct{}
 
-func (m *mockStoreEmpty) Create(ctx context.Context, p *CreatePostDto) (*PostDto, error) {
+func (m *mockStoreEmpty) Create(ctx context.Context, p *CreatePostDto) (*Post, error) {
 	return nil, nil
 }
 
-func (m *mockStoreEmpty) Update(ctx context.Context, p *UpdatePostDto) (*PostDto, error) {
+func (m *mockStoreEmpty) Update(ctx context.Context, p *UpdatePostDto) (*Post, error) {
 	return nil, errors.New("Any error occurred")
 }
 
-func (m *mockStoreEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*PostDto, error) {
+func (m *mockStoreEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*Post, error) {
 	return nil, nil
 }
 
-func (m *mockStoreEmpty) ReadOne(ctx context.Context, id string) (*PostDto, error) {
-	return &PostDto{}, nil
+func (m *mockStoreEmpty) ReadOne(ctx context.Context, id string) (*Post, error) {
+	return &Post{}, nil
 }
 
 type mockStoreReadErrored struct{}
 
-func (m *mockStoreReadErrored) Create(ctx context.Context, p *CreatePostDto) (*PostDto, error) {
+func (m *mockStoreReadErrored) Create(ctx context.Context, p *CreatePostDto) (*Post, error) {
 	return nil, nil
 }
 
-func (m *mockStoreReadErrored) Update(ctx context.Context, p *UpdatePostDto) (*PostDto, error) {
+func (m *mockStoreReadErrored) Update(ctx context.Context, p *UpdatePostDto) (*Post, error) {
 	return nil, errors.New("Any error occurred")
 }
 
-func (m *mockStoreReadErrored) Filter(ctx context.Context, p *GeneralFilter) ([]*PostDto, error) {
+func (m *mockStoreReadErrored) Filter(ctx context.Context, p *GeneralFilter) ([]*Post, error) {
 	return nil, nil
 }
 
-func (m *mockStoreReadErrored) ReadOne(ctx context.Context, id string) (*PostDto, error) {
+func (m *mockStoreReadErrored) ReadOne(ctx context.Context, id string) (*Post, error) {
 	return nil, errors.New("Something happened")
 }
 

@@ -1,15 +1,13 @@
 package broker
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"testing"
 
-	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
-	"github.com/ory/dockertest"
-	"github.com/ory/dockertest/docker"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
 func TestMain(m *testing.M) {
@@ -17,17 +15,11 @@ func TestMain(m *testing.M) {
 }
 
 func testMainWrapper(m *testing.M) int {
-	err := godotenv.Load("../.env.test")
-	if err != nil {
-		log.Println("dotenv file not found")
-	}
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		log.Fatalf("error starting docker: %s\n", err)
 	}
 
-	testUser := os.Getenv("NATS_TEST_USER")
-	testPass := os.Getenv("NATS_TEST_PASSWORD")
 	hostIP := "0.0.0.0"
 	containerName := "blog_post_nats"
 
@@ -65,15 +57,12 @@ func testMainWrapper(m *testing.M) int {
 	}()
 
 	retryFunc := func() error {
-		_, err := nats.Connect(
-			fmt.Sprintf(
-				"nats://%s:%s@localhost:%s",
-				testUser,
-				testPass,
-				basePort,
-			),
-		)
-		return err
+		conn, err := nats.Connect(nats.DefaultURL)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		return nil
 	}
 	if err := pool.Retry(retryFunc); err != nil {
 		err2 := pool.RemoveContainerByName(containerName)

@@ -66,7 +66,7 @@ func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 
 // Creates a Post with data with corresponding CreatePostDto
 func (p *PgStore) Create(ctx context.Context,
-	create *usecase.CreatePostDto) (*usecase.PostDto, error) {
+	create *usecase.CreatePostDto) (*usecase.Post, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
@@ -110,7 +110,7 @@ func (p *PgStore) Create(ctx context.Context,
 
 // Updates the corresponding post with the Id from the UpdatePostDto passed
 func (p *PgStore) Update(ctx context.Context,
-	update *usecase.UpdatePostDto) (*usecase.PostDto, error) {
+	update *usecase.UpdatePostDto) (*usecase.Post, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, wrapErrorInfo(CreateTransactionError, err.Error())
@@ -132,8 +132,8 @@ func (p *PgStore) Update(ctx context.Context,
 }
 
 // Reads from the store the post with the passed Id
-func (p *PgStore) ReadOne(ctx context.Context, id string) (*usecase.PostDto, error) {
-	post := &usecase.PostDto{}
+func (p *PgStore) ReadOne(ctx context.Context, id string) (*usecase.Post, error) {
+	post := &usecase.Post{}
 	row := p.db.QueryRow(
 		ctx,
 		fmt.Sprintf(selectPost, "WHERE id = $1"),
@@ -148,7 +148,7 @@ func (p *PgStore) ReadOne(ctx context.Context, id string) (*usecase.PostDto, err
 
 // Filters either by tags and/or creation date
 func (p *PgStore) Filter(ctx context.Context,
-	filter *usecase.GeneralFilter) ([]*usecase.PostDto, error) {
+	filter *usecase.GeneralFilter) ([]*usecase.Post, error) {
 	params := make([]interface{}, 0)
 	filterStatement := buildFilterStatement(filter, &params)
 	rows, err := p.db.Query(ctx, filterStatement, params...)
@@ -156,9 +156,9 @@ func (p *PgStore) Filter(ctx context.Context,
 		return nil, wrapErrorInfo(FilterError, err.Error())
 	}
 	defer rows.Close()
-	posts := []*usecase.PostDto{}
+	posts := []*usecase.Post{}
 	for rows.Next() {
-		post := &usecase.PostDto{}
+		post := &usecase.Post{}
 		err = rowToPost(rows, post)
 		if err != nil {
 			return nil, wrapErrorInfo(FilterError, err.Error())
@@ -233,8 +233,8 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 }
 
 func (p *PgStore) getNewestByCreator(ctx context.Context,
-	creator string) *usecase.PostDto {
-	post := &usecase.PostDto{}
+	creator string) *usecase.Post {
+	post := &usecase.Post{}
 	row := p.db.QueryRow(
 		ctx,
 		fmt.Sprintf(selectPost, "WHERE p.creator = $1 ORDER BY updated_at DESC LIMIT 1"),
@@ -380,7 +380,7 @@ func insertParamsString(tags []string, position int) string {
 	return strings.Join(statements, ",")
 }
 
-func rowToPost(rawPost pgx.Row, post *usecase.PostDto) error {
+func rowToPost(rawPost pgx.Row, post *usecase.Post) error {
 	return rawPost.Scan(
 		&post.Id, &post.Creator,
 		&post.Title, &post.Content,

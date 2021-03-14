@@ -47,7 +47,6 @@ func TestUserRepository(t *testing.T) {
 	genericErrMsg := "Got value: %v, Expected: %v"
 	happyPathStore := &happyPathUserStoreMock{}
 	erroredStore := &erroredUserStoreMock{}
-	logger := &mockLogger{}
 	t.Run("Change Password", func(t *testing.T) {
 		trueValidator := &trueValidator{}
 		correctChangePassword := &ChangePasswordDto{
@@ -74,7 +73,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: trueValidator,
 					Store:     erroredStore,
-					Logger:    logger,
 				},
 				Dto:    correctChangePassword,
 				ExpErr: UserPasswordNotMatchingError,
@@ -85,7 +83,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: trueValidator,
 					Store:     erroredStore,
-					Logger:    logger,
 				},
 				Dto:    correctChangePassword,
 				ExpErr: UserPasswordNotMatchingError,
@@ -96,7 +93,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorEmail{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto:    badEmailChangePassword,
 				ExpErr: MalformedEmailError,
@@ -107,7 +103,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: trueValidator,
 					Store:     erroredStore,
-					Logger:    logger,
 				},
 				Dto:    correctChangePassword,
 				ExpErr: UserPasswordNotMatchingError,
@@ -118,7 +113,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorPasswordsNotMatching{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto:    notMatchingPasswords,
 				ExpErr: PasswordsDontMatchError,
@@ -129,7 +123,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorPassword{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto:    correctChangePassword,
 				ExpErr: InvalidPasswordError,
@@ -140,7 +133,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: trueValidator,
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto:           correctChangePassword,
 				ContextCancel: true,
@@ -152,7 +144,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: trueValidator,
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto: correctChangePassword,
 			},
@@ -214,7 +205,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorEmail{},
 					Store:     happyPathUserStore,
-					Logger:    logger,
 				},
 				Dto:    incorrectEmailDto,
 				ExpErr: MalformedEmailError,
@@ -225,7 +215,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     &happyPathUserStoreMock{regularDto.Email, regularDto.Username},
-					Logger:    logger,
 				},
 				Dto:    regularDto,
 				ExpErr: EmailOrUsernameAlreadyInUseError,
@@ -236,7 +225,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorPassword{},
 					Store:     happyPathUserStore,
-					Logger:    logger,
 				},
 				Dto:    incorrectPasswordDto,
 				ExpErr: InvalidPasswordError,
@@ -247,7 +235,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				ContextCancel: true,
 				Dto:           regularDto,
@@ -259,7 +246,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorPasswordsNotMatching{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto:    notMatchingPasswordDto,
 				ExpErr: PasswordsDontMatchError,
@@ -270,7 +256,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto: regularDto,
 			},
@@ -321,7 +306,6 @@ func TestUserRepository(t *testing.T) {
 			t.Run(tc.Name, func(t *testing.T) {
 				repo := &UserRepository{
 					Validator: validator,
-					Logger:    logger,
 					Store:     &happyPathUserStoreMock{tc.Login, tc.Login},
 				}
 				t.Log(tc.Description)
@@ -366,7 +350,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &falseValidatorEmail{},
 					Store:     happyPathUserStore,
-					Logger:    logger,
 				},
 				Dto:    incorrectEmailDto,
 				ExpErr: MalformedEmailError,
@@ -377,7 +360,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				ContextCancel: true,
 				Dto:           regularDto,
@@ -389,7 +371,6 @@ func TestUserRepository(t *testing.T) {
 				Repo: &UserRepository{
 					Validator: &trueValidator{},
 					Store:     happyPathStore,
-					Logger:    logger,
 				},
 				Dto: regularDto,
 			},

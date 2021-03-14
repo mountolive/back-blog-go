@@ -9,7 +9,7 @@ import (
 )
 
 // Post entity representation
-type PostDto struct {
+type Post struct {
 	Id        string
 	Creator   string
 	Title     string
@@ -57,10 +57,10 @@ type GeneralFilter struct {
 // Contract for the needs of a post's repo in terms of persistence
 //    The Update method should return the updated version of the post
 type PostStore interface {
-	Create(context.Context, *CreatePostDto) (*PostDto, error)
-	Update(context.Context, *UpdatePostDto) (*PostDto, error)
-	Filter(context.Context, *GeneralFilter) ([]*PostDto, error)
-	ReadOne(context.Context, string) (*PostDto, error)
+	Create(context.Context, *CreatePostDto) (*Post, error)
+	Update(context.Context, *UpdatePostDto) (*Post, error)
+	Filter(context.Context, *GeneralFilter) ([]*Post, error)
+	ReadOne(context.Context, string) (*Post, error)
 }
 
 // Basic contract intended to enforce sanitizing of content to avoid
@@ -97,7 +97,7 @@ var (
 
 // Persists and return a PostDto with the data passed
 func (r *PostRepository) CreatePost(ctx context.Context,
-	post *CreatePostDto) (*PostDto, error) {
+	post *CreatePostDto) (*Post, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
@@ -118,7 +118,7 @@ func (r *PostRepository) CreatePost(ctx context.Context,
 // Updates and return a PostDto with the data passed,
 //   otherwise returns no-nil error
 func (r *PostRepository) UpdatePost(ctx context.Context,
-	updated *UpdatePostDto) (*PostDto, error) {
+	updated *UpdatePostDto) (*Post, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
@@ -132,7 +132,7 @@ func (r *PostRepository) UpdatePost(ctx context.Context,
 }
 
 // Retrieves a post by its identifier (id)
-func (r *PostRepository) GetPost(ctx context.Context, id string) (*PostDto, error) {
+func (r *PostRepository) GetPost(ctx context.Context, id string) (*Post, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
@@ -150,7 +150,7 @@ func (r *PostRepository) GetPost(ctx context.Context, id string) (*PostDto, erro
 
 // Filters persisted posts by tag(s)
 func (r *PostRepository) FilterByTag(ctx context.Context,
-	filter *ByTagDto, page, pageSize int) ([]*PostDto, error) {
+	filter *ByTagDto, page, pageSize int) ([]*Post, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")
@@ -163,7 +163,7 @@ func (r *PostRepository) FilterByTag(ctx context.Context,
 
 // Filters persisted posts by date range
 func (r *PostRepository) FilterByDateRange(ctx context.Context,
-	filter *ByDateRangeDto, page, pageSize int) ([]*PostDto, error) {
+	filter *ByDateRangeDto, page, pageSize int) ([]*Post, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context error")

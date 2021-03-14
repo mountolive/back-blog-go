@@ -85,7 +85,7 @@ func TestPgStore(t *testing.T) {
 				Tags:    []string{"tag5"},
 			},
 		}
-		createdPosts := []*usecase.PostDto{}
+		createdPosts := []*usecase.Post{}
 		for _, newPost := range posts {
 			createdPosts = append(createdPosts, createPost(t, newPost))
 		}
@@ -143,7 +143,7 @@ func TestPgStore(t *testing.T) {
 	})
 }
 
-func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.PostDto {
+func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.Post {
 	result, err := store.Create(context.Background(), post)
 	require.True(t, err == nil, "An error was returned. Not expected: %s, Create", err)
 	require.NotNil(t, result, "No entity was returned from Create")
@@ -155,7 +155,7 @@ func createPost(t *testing.T, post *usecase.CreatePostDto) *usecase.PostDto {
 	return result
 }
 
-func checkPostsByTag(t *testing.T, result *usecase.PostDto,
+func checkPostsByTag(t *testing.T, result *usecase.Post,
 	tag string, pageSize int) {
 	filter := &usecase.GeneralFilter{PageSize: pageSize}
 	filter.Tag = tag
@@ -205,7 +205,7 @@ func testMainWrapper(m *testing.M) int {
 
 	container, err := pool.RunWithOptions(runOptions)
 	if err != nil {
-		log.Fatalf("An error occurred setting the container: %s", err)
+		log.Fatalf("error occurred setting the container: %s", err)
 	}
 	defer func() {
 		if err := pool.Purge(container); err != nil {

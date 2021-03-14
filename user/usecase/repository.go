@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type UserDto struct {
+type User struct {
 	Id        string
 	Email     string
 	Username  string
@@ -78,17 +78,11 @@ const unknownErrorInStore = "Found reported from store: %s and %s, but wrong dto
 // Contract for the needs of the repository in terms of persistance:
 //    Defines which methods would be needed for each usecase
 type UserStore interface {
-	Create(context.Context, *CreateUserDto) (*UserDto, error)
-	Update(context.Context, string, *UpdateUserDto) (*UserDto, error)
+	Create(context.Context, *CreateUserDto) (*User, error)
+	Update(context.Context, string, *UpdateUserDto) (*User, error)
 	UpdatePassword(context.Context, *ChangePasswordDto) error
-	ReadOne(context.Context, *ByUsernameOrEmail) (*UserDto, error)
+	ReadOne(context.Context, *ByUsernameOrEmail) (*User, error)
 	CheckIfCorrectPassword(context.Context, *CheckUserAndPasswordDto) error
-}
-
-// Logger interface that handles the basic method for logging
-//   errors
-type Logger interface {
-	LogError(err error)
 }
 
 // Validator for email's strings
@@ -119,12 +113,11 @@ type UserValidator interface {
 type UserRepository struct {
 	Store     UserStore
 	Validator UserValidator
-	Logger    Logger
 }
 
 // Reads an user either by her Username or by her Email
 func (r *UserRepository) ReadUser(ctx context.Context,
-	loginCred string) (*UserDto, error) {
+	loginCred string) (*User, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context canceled")
@@ -170,7 +163,7 @@ func (r *UserRepository) ChangePassword(ctx context.Context,
 
 // Creates an user. Returns an error on validation
 func (r *UserRepository) CreateUser(ctx context.Context,
-	user *CreateUserDto) (*UserDto, error) {
+	user *CreateUserDto) (*User, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context canceled")
@@ -202,7 +195,7 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 
 // Updates an user. Returns error on retrieval or actual persistence
 func (r *UserRepository) UpdateUser(ctx context.Context, id string,
-	user *UpdateUserDto) (*UserDto, error) {
+	user *UpdateUserDto) (*User, error) {
 	ctx, cancel, err := checkContextAndRecreate(ctx)
 	if err != nil {
 		return nil, r.logErrorAndWrap(err, "Context canceled")
@@ -227,7 +220,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id string,
 	return r.Store.Update(ctx, id, user)
 }
 
-func (r *UserRepository) mapMissingParams(user *UpdateUserDto, found *UserDto) {
+func (r *UserRepository) mapMissingParams(user *UpdateUserDto, found *User) {
 	if user.Username == "" {
 		user.Username = found.Username
 	}
@@ -255,7 +248,6 @@ func (r *UserRepository) validatePasswords(password, repeatedPassword string) er
 }
 
 func (r *UserRepository) logErrorAndWrap(err error, msg string) error {
-	r.Logger.LogError(err)
 	return fmt.Errorf("%s: %w \n", msg, err)
 }
 

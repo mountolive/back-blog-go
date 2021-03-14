@@ -62,7 +62,7 @@ func TestPostRepository(t *testing.T) {
 		testCases := []createPostTestCase{
 			{
 				Name:        "Proper Create Post",
-				Description: "It should return a *PostDto and no error",
+				Description: "It should return a *Post and no error",
 				Dto:         testDto,
 				Repo:        repo,
 			},
@@ -155,7 +155,7 @@ func TestPostRepository(t *testing.T) {
 				},
 			},
 			{
-				Name:        "Can return a *PostDto",
+				Name:        "Can return a *Post",
 				Description: "It should return the found Post, from the store",
 				Repo:        repo,
 			},
@@ -192,7 +192,7 @@ func TestPostRepository(t *testing.T) {
 		testCases := []updatePostTestCase{
 			{
 				Name:        "Proper Update Post",
-				Description: "It should return a *PostDto and no error",
+				Description: "It should return a *Post and no error",
 				Dto:         testDto,
 				Repo:        repo,
 			},
@@ -243,7 +243,7 @@ func TestPostRepository(t *testing.T) {
 		testCases := []filterTestCase{
 			{
 				Name:        "Proper Filtering",
-				Description: "It should return a []*PostDto and no error",
+				Description: "It should return a []*Post and no error",
 				Dto:         testDto,
 			},
 			{
@@ -262,7 +262,7 @@ func TestPostRepository(t *testing.T) {
 				if tc.CtxCancel {
 					cancel()
 				}
-				var posts []*PostDto
+				var posts []*Post
 				var err error
 				if tc.Dto.Tag == "" {
 					posts, err = repo.FilterByDateRange(ctx, &ByDateRangeDto{tc.Dto.From, tc.Dto.To}, 0, 1)
@@ -270,11 +270,11 @@ func TestPostRepository(t *testing.T) {
 					posts, err = repo.FilterByTag(ctx, &ByTagDto{tc.Dto.Tag}, 0, 1)
 				}
 				if tc.ExpErr != nil {
-					require.True(t, posts == nil, "Returned []*PostDto should be nil")
+					require.True(t, posts == nil, "Returned []*Post should be nil")
 					require.True(t, err != nil, "Err should be not nil")
 					require.True(t, errors.Is(err, tc.ExpErr), genericError, err, tc.ExpErr)
 				} else {
-					require.True(t, posts != nil, "[]*PostDto returned nil when it shouldn't")
+					require.True(t, posts != nil, "[]*Post returned nil when it shouldn't")
 					require.True(t, err == nil, "Err should be nil")
 					// As the mock returns a single value
 					length := len(posts)
