@@ -69,10 +69,10 @@ func (m mockErroredEventBus) Resolve(context.Context, eventbus.Event) error {
 }
 
 func TestNATSBroker(t *testing.T) {
+	erroredBus := mockErroredEventBus{}
+	notErroredBus := mockNonErroredEventBus{}
 	t.Run("NewNATSBroker", func(t *testing.T) {
 		t.Parallel()
-		erroredBus := mockErroredEventBus{}
-		notErroredBus := mockNonErroredEventBus{}
 
 		t.Run("Connection error", func(t *testing.T) {
 			conf := NewNATSConfig("badU", "badP", "badH", uint16(3333))
@@ -86,10 +86,21 @@ func TestNATSBroker(t *testing.T) {
 			broker, err := NewNATSBroker(notErroredBus, conf)
 			require.NoError(t, err)
 			require.NotNil(t, broker)
+			// Avoid connection leakage
+			broker.CloseConnection()
 		})
 	})
 
 	t.Run("ProcessMessages", func(t *testing.T) {
+		t.Parallel()
+		conf := DefaultNATSConfig()
+
+		t.Run("Error from EventBus", func(t *testing.T) {
+			broker, err := NewNATSBroker(erroredBus, conf)
+			require.NoError(t, err)
+			require.NotNil(t, broker)
+			// TODO keep checking here
+		})
 	})
 }
 
