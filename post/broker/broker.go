@@ -15,8 +15,12 @@ var (
 	ErrNATSServerConnection = errors.New("NATS server error connection")
 	// ErrNATSubscription indicates than an error occurred when triggering subscription
 	ErrNATSubscription = errors.New("NATS subscription failed")
-	// ErrEventBus
+	// ErrEventBus is self-described
 	ErrEventBus = errors.New("event bus error")
+	// ErrContextCanceled is self-described
+	ErrContextCanceled = errors.New("NATS broker context canceled")
+	// ErrDeadLetterPublish is self-described
+	ErrDeadLetterPublish = errors.New("NATS publish to dead letter failed")
 )
 
 // EventBus is the needed functionality from the corresponding Broker
@@ -113,11 +117,42 @@ func (n *NATSBroker) CloseConnection() {
 	n.conn.Close()
 }
 
+const deadLetter = "dead.%s"
+
 // ProcessMessages starts cosuming messages from a given subscription
-func (n *NATSBroker) Process(context.Context) error {
-	// TODO Implement
-	return nil
+func (n *NATSBroker) Process(ctx context.Context) <-chan error {
+	errChan := make(chan error)
+	go func() {
+		defer close(errChan)
+		for {
+			select {
+			case <-ctx.Done():
+				errChan <- wrapError(ErrContextCanceled, ctx.Err().Error())
+			case msg := <-n.messagesChan:
+				event := Message{
+					data: msg.Data,
+				}
+				err := n.bus.Resolve(ctx, event)
+				if err != nil {
+					errChan <- wrapError(ErrEventBus, err.Error())
+					err = n.conn.Publish(fmt.Sprintf(deadLetter, msg.Subject), msg.Data)
+					if err != nil {
+						errChan <- wrapError(ErrDeadLetterPublish, err.Error())
+					}
+				}
+			}
+		}
+	}()
+	return errChan
 }
+
+// Message is a wrapper for *nats.Msg
+type Message struct {
+	data []byte
+}
+
+// Data returns the data associated to the Message
+func (m Message) Data() []byte { return m.data }
 
 func wrapError(err error, msg string) error {
 	return fmt.Errorf("%w: %s", err, msg)

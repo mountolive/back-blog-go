@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/mountolive/back-blog-go/post/eventbus"
 	"github.com/nats-io/nats.go"
@@ -46,9 +47,11 @@ var _ eventbus.Event = mockEvent{}
 
 type mockEvent struct{}
 
-func (mockEvent) Name() string { return "ready for my close-up" }
-
-func (mockEvent) Params() eventbus.Params { return nil }
+func (mockEvent) Data() []byte {
+	return []byte(
+		`{"event_name": "hey", "data": "bla"}`,
+	)
+}
 
 var _ EventBus = &mockNonErroredEventBus{}
 
@@ -149,7 +152,9 @@ func TestNATSBroker(t *testing.T) {
 			broker := brokerWithInitializedSubscription(erroredBus)
 			err = produceMsg(0)
 			require.NoError(t, err)
-			err = broker.Process(context.Background())
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err = <-broker.Process(ctx)
 			require.True(t, errors.Is(err, ErrEventBus))
 		})
 
@@ -160,9 +165,11 @@ func TestNATSBroker(t *testing.T) {
 				err = produceMsg(i)
 				require.NoError(t, err)
 			}
-			err = broker.Process(context.Background())
-			require.NoError(t, err)
-			require.Len(t, notErroredBus.timesCalled, 100)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err = <-broker.Process(ctx)
+			require.True(t, errors.Is(err, ErrContextCanceled))
+			require.Equal(t, 100, notErroredBus.timesCalled)
 			notErroredBus.timesCalled = 0
 		})
 	})

@@ -27,10 +27,8 @@ type testEvent struct {
 	name string
 }
 
-func (t *testEvent) Name() string {
-	return t.name
-}
-
-func (t *testEvent) Params() Params {
-	return nil
+func (e testEvent) Data() []byte {
+	return []byte(
+		fmt.Sprintf(`{"event_name": "%s", "data": "some-data"}`, e.name),
+	)
 }

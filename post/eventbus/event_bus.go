@@ -2,22 +2,30 @@ package eventbus
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
 
 var (
+	// ErrEventNotRegistered is self-described
 	ErrEventNotRegistered = errors.New("event not registered")
-	ErrCommandHandler     = errors.New("command handler error")
+	// ErrEventNotRegistered is returned when an error is returned by a CommandHandler
+	ErrCommandHandler = errors.New("command handler error")
+	// ErrUnmarshalingMessage is self-described
+	ErrUnmarshalingMessage = errors.New("unmarshaling message error")
+	// ErrMissingNameParam returned when the key "name" is missing from an Event
+	ErrMissingNameParam = errors.New("missing `name` param from message")
+	// ErrWrongDataTypeName is self-described
+	ErrWrongDataTypeName = errors.New("wrong data type for param `name`")
 )
 
-// Message describes a command's message
-type Params interface{}
+// Params is a map of the parameters of a call
+type Params map[string]interface{}
 
 // Event describes a basic event in the application
 type Event interface {
-	Name() string
-	Params() Params
+	Data() []byte
 }
 
 // CommandHandler refers to capabilities that changes state in the application
@@ -37,11 +45,25 @@ func NewEventBus() *EventBus {
 
 // Resolve passes an event and executes its corresponding CommandHandler
 func (e EventBus) Resolve(ctx context.Context, event Event) error {
-	handler, ok := e.handlers[event.Name()]
+	eventData := make(map[string]interface{})
+	err := json.Unmarshal(event.Data(), &eventData)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrUnmarshalingMessage, err)
+	}
+	nameResult, ok := eventData["event_name"]
+	if !ok {
+		return ErrMissingNameParam
+	}
+	name, ok := nameResult.(string)
+	if !ok {
+		return ErrWrongDataTypeName
+	}
+	handler, ok := e.handlers[name]
 	if !ok {
 		return ErrEventNotRegistered
 	}
-	err := handler.Handle(ctx, event)
+	delete(eventData, "event_name")
+	err = handler.Handle(ctx, eventData)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrCommandHandler, err)
 	}

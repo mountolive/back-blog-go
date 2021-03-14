@@ -1,2 +1,3 @@
+- Add more tests to post.EventBus.Resolve
 - Abstract away container creation for integration tests
 - Rename *Dto to DTO
