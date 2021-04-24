@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -86,15 +85,6 @@ func TestNATSBroker(t *testing.T) {
 	mockErr := errors.New("I exploded")
 	erroredBus := mockErroredEventBus{mockErr}
 	notErroredBus := &mockNonErroredEventBus{}
-	notErroredBus.resolveFunc = func(ctx context.Context, ev eventbus.Event) error {
-		require.Equal(
-			t,
-			fmt.Sprintf(testingMsg, notErroredBus.timesCalled),
-			string(ev.Data()),
-		)
-		notErroredBus.timesCalled += 1
-		return nil
-	}
 
 	t.Run("NewNATSBroker", func(t *testing.T) {
 		t.Run("Connection error", func(t *testing.T) {
@@ -111,7 +101,6 @@ func TestNATSBroker(t *testing.T) {
 			broker, err := NewNATSBroker(notErroredBus, conf)
 			require.NoError(t, err)
 			require.NotNil(t, broker)
-			// Avoid connection leakage
 			broker.CloseConnection()
 		})
 	})
@@ -125,12 +114,13 @@ func TestNATSBroker(t *testing.T) {
 			if producerConn.IsClosed() {
 				return errors.New("connection closed")
 			}
-			return producerConn.Publish(
+			err := producerConn.Publish(
 				conf.subscriptionName,
 				[]byte(fmt.Sprintf(testingMsg, msgNum)),
 			)
+			require.NoError(t, err)
+			return producerConn.Flush()
 		}
-		timeout := 5 * time.Second
 
 		brokerWithInitializedSubscription := func(bus EventBus) *NATSBroker {
 			broker, err := NewNATSBroker(bus, conf)
@@ -139,26 +129,23 @@ func TestNATSBroker(t *testing.T) {
 			return broker
 		}
 
-		t.Run("Error from EventBus", func(t *testing.T) {
-			broker := brokerWithInitializedSubscription(erroredBus)
-			defer broker.CloseConnection()
-			err = produceMsg(rand.Intn(100))
-			require.NoError(t, err)
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
-			errCount := 0
-			for err := range broker.Process(ctx) {
-				fmt.Println("Error from EventBus:", err)
-				errCount++
-			}
-			require.Equal(t, 2, errCount)
-		})
+		notErroredBus.resolveFunc = func(ctx context.Context, ev eventbus.Event) error {
+			fmt.Println("MSG:", string(ev.Data()))
+			require.Equal(
+				t,
+				fmt.Sprintf(testingMsg, notErroredBus.timesCalled),
+				string(ev.Data()),
+			)
+			notErroredBus.timesCalled += 1
+			return nil
+		}
 
 		t.Run("Message consumption", func(t *testing.T) {
+			timeout := 10 * time.Second
 			broker := brokerWithInitializedSubscription(notErroredBus)
 			defer broker.CloseConnection()
 			var err error
-			for i := 1; i < 11; i++ {
+			for i := 0; i < 10; i++ {
 				err = produceMsg(i)
 				require.NoError(t, err)
 			}
@@ -171,6 +158,22 @@ func TestNATSBroker(t *testing.T) {
 			}
 			require.Equal(t, 10, notErroredBus.timesCalled)
 			require.Equal(t, 1, errCount)
+		})
+
+		t.Run("Error from EventBus", func(t *testing.T) {
+			timeout := 5 * time.Second
+			broker := brokerWithInitializedSubscription(erroredBus)
+			defer broker.CloseConnection()
+			err = produceMsg(100)
+			require.NoError(t, err)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			errCount := 0
+			for err := range broker.Process(ctx) {
+				fmt.Println("Error from EventBus:", err)
+				errCount++
+			}
+			require.Equal(t, 2, errCount)
 		})
 	})
 }

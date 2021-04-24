@@ -20,6 +20,8 @@ var (
 	ErrEventBus = errors.New("event bus error")
 	// ErrContextCanceled is self-described
 	ErrContextCanceled = errors.New("NATS broker context canceled")
+	// ErrFlushSubscription is self-described
+	ErrFlushSubscription = errors.New("NATS in flushing subscription (roundtrip)")
 	// ErrDeadLetterPublish is self-described
 	ErrDeadLetterPublish = errors.New("NATS publish to dead letter failed")
 )
@@ -186,7 +188,11 @@ func (n *NATSBroker) processMsgChan(
 			errHandler(wrapError(ErrContextCanceled, ctx.Err().Error()))
 			return
 		case <-pollTicker.C:
-			n.conn.Flush()
+			err := n.conn.Flush()
+			if err != nil {
+				errHandler(wrapError(ErrFlushSubscription, err.Error()))
+				return
+			}
 		case msg := <-msgChan:
 			event := Message{
 				data: msg.Data,
