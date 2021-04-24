@@ -44,6 +44,7 @@ type NATSConfig struct {
 }
 
 // NewNATSConfig is a standard constructor
+// pollingTime is the number of milliseconds per roundtrip to the server
 func NewNATSConfig(
 	usr, pwd, subsName, deadLetter, h string,
 	p uint16, pollingTime int, opts ...nats.Option,
@@ -77,8 +78,8 @@ func (n NATSConfig) URL() string {
 
 const (
 	deadLetter = "dead.%s"
-	// 1 Second
-	defaultPollingTime = 1
+	// Milliseconds
+	defaultPollingTime = 250
 )
 
 // DefaultNATSConfig returns a standard configuration for a barebones NATS server
@@ -152,15 +153,30 @@ func (n *NATSBroker) Process(ctx context.Context) <-chan error {
 	errHandler := func(err error) {
 		errChan <- err
 	}
+	msgHandler := func(msg *nats.Msg) error {
+		event := Message{
+			data: msg.Data,
+		}
+		return n.bus.Resolve(ctx, event)
+	}
 	go func() {
 		defer close(errChan)
-		n.processMsgChan(ctx, n.messagesChan, errHandler, errMsgHandler)
+		n.processMsgChan(
+			ctx,
+			n.messagesChan,
+			msgHandler,
+			errHandler,
+			errMsgHandler,
+		)
 	}()
 	return errChan
 }
 
 // ProcessDead starts cosuming messages from a given subscription's deadLetter
-func (n *NATSBroker) ProcessDead(ctx context.Context) <-chan error {
+func (n *NATSBroker) ProcessDead(
+	ctx context.Context,
+	msgHandler func(msg *nats.Msg) error,
+) <-chan error {
 	errChan := make(chan error)
 	errHandler := func(err error) {
 		errChan <- err
@@ -170,17 +186,26 @@ func (n *NATSBroker) ProcessDead(ctx context.Context) <-chan error {
 	}
 	go func() {
 		defer close(errChan)
-		n.processMsgChan(ctx, n.messagesChan, errHandler, errMsgHandler)
+		n.processMsgChan(
+			ctx,
+			n.deadLetterMessagesChan,
+			msgHandler,
+			errHandler,
+			errMsgHandler,
+		)
 	}()
 	return errChan
 }
 
 func (n *NATSBroker) processMsgChan(
 	ctx context.Context, msgChan chan *nats.Msg,
+	msgHandler func(*nats.Msg) error,
 	errHandler func(err error),
 	errMsgHandler func(err error, msg *nats.Msg),
 ) {
-	pollTicker := time.NewTicker(time.Duration(n.conf.pollingTime) * time.Second)
+	pollTicker := time.NewTicker(
+		time.Duration(n.conf.pollingTime) * time.Millisecond,
+	)
 	for {
 		defer pollTicker.Stop()
 		select {
@@ -194,10 +219,7 @@ func (n *NATSBroker) processMsgChan(
 				return
 			}
 		case msg := <-msgChan:
-			event := Message{
-				data: msg.Data,
-			}
-			err := n.bus.Resolve(ctx, event)
+			err := msgHandler(msg)
 			if err != nil {
 				errMsgHandler(err, msg)
 			}

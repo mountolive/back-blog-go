@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -106,31 +107,30 @@ func TestNATSBroker(t *testing.T) {
 	})
 
 	t.Run("ProcessMessages", func(t *testing.T) {
-		conf := DefaultNATSConfig("bla")
-		producerConn, err := nats.Connect(conf.URL())
-		require.NoError(t, err)
-
-		produceMsg := func(msgNum int) error {
-			if producerConn.IsClosed() {
-				return errors.New("connection closed")
-			}
-			err := producerConn.Publish(
-				conf.subscriptionName,
-				[]byte(fmt.Sprintf(testingMsg, msgNum)),
-			)
+		produceFunc := func(subName string) func(int) error {
+			conf := DefaultNATSConfig(subName)
+			producerConn, err := nats.Connect(conf.URL())
 			require.NoError(t, err)
-			return producerConn.Flush()
+
+			return func(msgNameNum int) error {
+				require.True(t, producerConn.IsConnected())
+				err := producerConn.Publish(
+					conf.subscriptionName,
+					[]byte(fmt.Sprintf(testingMsg, msgNameNum)),
+				)
+				require.NoError(t, err)
+				return producerConn.Flush()
+			}
 		}
 
-		brokerWithInitializedSubscription := func(bus EventBus) *NATSBroker {
-			broker, err := NewNATSBroker(bus, conf)
+		brokerWithInitializedSubscription := func(bus EventBus, sub string) *NATSBroker {
+			broker, err := NewNATSBroker(bus, DefaultNATSConfig(sub))
 			require.NoError(t, err)
 			require.NotNil(t, broker)
 			return broker
 		}
 
 		notErroredBus.resolveFunc = func(ctx context.Context, ev eventbus.Event) error {
-			fmt.Println("MSG:", string(ev.Data()))
 			require.Equal(
 				t,
 				fmt.Sprintf(testingMsg, notErroredBus.timesCalled),
@@ -142,18 +142,19 @@ func TestNATSBroker(t *testing.T) {
 
 		t.Run("Message consumption", func(t *testing.T) {
 			timeout := 10 * time.Second
-			broker := brokerWithInitializedSubscription(notErroredBus)
+			subscriptionName := "consume"
+			broker := brokerWithInitializedSubscription(notErroredBus, subscriptionName)
 			defer broker.CloseConnection()
-			var err error
+			produceMsg := produceFunc(subscriptionName)
 			for i := 0; i < 10; i++ {
-				err = produceMsg(i)
+				err := produceMsg(i)
 				require.NoError(t, err)
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 			errCount := 0
 			for err := range broker.Process(ctx) {
-				fmt.Println("Message consumption:", err)
+				require.Error(t, err)
 				errCount++
 			}
 			require.Equal(t, 10, notErroredBus.timesCalled)
@@ -162,18 +163,33 @@ func TestNATSBroker(t *testing.T) {
 
 		t.Run("Error from EventBus", func(t *testing.T) {
 			timeout := 5 * time.Second
-			broker := brokerWithInitializedSubscription(erroredBus)
+			subscriptionName := "errored"
+			broker := brokerWithInitializedSubscription(erroredBus, "errored")
 			defer broker.CloseConnection()
-			err = produceMsg(100)
+			produceMsg := produceFunc(subscriptionName)
+			msgNameNum := rand.Intn(100)
+			err := produceMsg(msgNameNum)
 			require.NoError(t, err)
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 			errCount := 0
 			for err := range broker.Process(ctx) {
-				fmt.Println("Error from EventBus:", err)
+				require.Error(t, err)
 				errCount++
 			}
-			require.Equal(t, 2, errCount)
+			deadMsgHandler := func(msg *nats.Msg) error {
+				require.Equal(
+					t,
+					fmt.Sprintf(testingMsg, msgNameNum),
+					string(msg.Data),
+				)
+				return nil
+			}
+			for err := range broker.ProcessDead(ctx, deadMsgHandler) {
+				require.Error(t, err)
+				errCount++
+			}
+			require.Equal(t, 3, errCount)
 		})
 	})
 }
@@ -186,23 +202,16 @@ func testMainWrapper(m *testing.M) int {
 
 	containerName := "blog_post_nats"
 	basePort := "4222"
-	inspectPort := "8222"
 	runOptions := &dockertest.RunOptions{
 		Repository:   "nats",
 		Tag:          "2.1",
 		Name:         containerName,
-		ExposedPorts: []string{basePort, inspectPort},
+		ExposedPorts: []string{basePort},
 		PortBindings: map[docker.Port][]docker.PortBinding{
 			docker.Port(basePort): {
 				{
 					HostIP:   "0.0.0.0",
 					HostPort: basePort,
-				},
-			},
-			docker.Port(inspectPort): {
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: inspectPort,
 				},
 			},
 		},
