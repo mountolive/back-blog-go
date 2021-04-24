@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/mountolive/back-blog-go/post/eventbus"
 	"github.com/nats-io/nats.go"
@@ -28,35 +29,32 @@ type EventBus interface {
 	Resolve(context.Context, eventbus.Event) error
 }
 
-// NATSBroker implementation of a Broker on top of NATS (https://nats.io/)
-type NATSBroker struct {
-	bus          EventBus
-	conn         *nats.Conn
-	conf         NATSConfig
-	messagesChan chan *nats.Msg
-}
-
 // NATSConfig is the basic configuration for a NATS connection
 type NATSConfig struct {
 	port uint16
 	user,
 	pass,
 	subscriptionName,
+	deadLetterSubscriptionName,
 	host string
-	opts []nats.Option
+	pollingTime int
+	opts        []nats.Option
 }
 
 // NewNATSConfig is a standard constructor
 func NewNATSConfig(
-	usr, pwd, subsName, h string, p uint16, opts ...nats.Option,
+	usr, pwd, subsName, deadLetter, h string,
+	p uint16, pollingTime int, opts ...nats.Option,
 ) NATSConfig {
 	return NATSConfig{
-		user:             usr,
-		pass:             pwd,
-		subscriptionName: subsName,
-		host:             h,
-		port:             p,
-		opts:             opts,
+		user:                       usr,
+		pass:                       pwd,
+		subscriptionName:           subsName,
+		deadLetterSubscriptionName: deadLetter,
+		host:                       h,
+		port:                       p,
+		pollingTime:                pollingTime,
+		opts:                       opts,
 	}
 }
 
@@ -75,16 +73,33 @@ func (n NATSConfig) URL() string {
 	return fmt.Sprintf("nats://%s:%s@%s:%d", n.user, n.pass, n.host, port)
 }
 
+const (
+	deadLetter = "dead.%s"
+	// 1 Second
+	defaultPollingTime = 1
+)
+
 // DefaultNATSConfig returns a standard configuration for a barebones NATS server
 // for the passed subscription's name
 func DefaultNATSConfig(subsName string) NATSConfig {
 	return NATSConfig{
-		user:             "",
-		pass:             "",
-		subscriptionName: subsName,
-		host:             "",
-		port:             0,
+		user:                       "",
+		pass:                       "",
+		subscriptionName:           subsName,
+		deadLetterSubscriptionName: fmt.Sprintf(deadLetter, subsName),
+		host:                       "",
+		pollingTime:                defaultPollingTime,
+		port:                       0,
 	}
+}
+
+// NATSBroker implementation of a Broker on top of NATS (https://nats.io/)
+type NATSBroker struct {
+	bus                    EventBus
+	conn                   *nats.Conn
+	conf                   NATSConfig
+	messagesChan           chan *nats.Msg
+	deadLetterMessagesChan chan *nats.Msg
 }
 
 // NewNATSBroker is a standard constructor
@@ -93,22 +108,27 @@ func NewNATSBroker(bus EventBus, conf NATSConfig) (*NATSBroker, error) {
 	if err != nil {
 		return nil, wrapError(ErrNATSServerConnection, err.Error())
 	}
-	broker := &NATSBroker{
-		bus:          bus,
-		conn:         conn,
-		conf:         conf,
-		messagesChan: make(chan *nats.Msg),
-	}
-	return broker, nil
-}
-
-// StartSubscription starts the associated subscription
-func (n *NATSBroker) StartSubscription() error {
-	_, err := n.conn.ChanSubscribe(n.conf.subscriptionName, n.messagesChan)
+	messagesChan := make(chan *nats.Msg)
+	_, err = conn.Subscribe(conf.subscriptionName, func(msg *nats.Msg) {
+		messagesChan <- msg
+	})
 	if err != nil {
-		return wrapError(ErrNATSubscription, err.Error())
+		return nil, wrapError(ErrNATSubscription, err.Error())
 	}
-	return nil
+	deadLetterMessagesChan := make(chan *nats.Msg)
+	_, err = conn.Subscribe(conf.deadLetterSubscriptionName, func(msg *nats.Msg) {
+		deadLetterMessagesChan <- msg
+	})
+	if err != nil {
+		return nil, wrapError(ErrNATSubscription, err.Error())
+	}
+	return &NATSBroker{
+		bus:                    bus,
+		conn:                   conn,
+		conf:                   conf,
+		messagesChan:           messagesChan,
+		deadLetterMessagesChan: deadLetterMessagesChan,
+	}, nil
 }
 
 // CloseConnection closes the underlying NATS connection;
@@ -117,34 +137,66 @@ func (n *NATSBroker) CloseConnection() {
 	n.conn.Close()
 }
 
-const deadLetter = "dead.%s"
-
-// ProcessMessages starts cosuming messages from a given subscription
+// Process starts cosuming messages from a given subscription
 func (n *NATSBroker) Process(ctx context.Context) <-chan error {
 	errChan := make(chan error)
+	errMsgHandler := func(err error, msg *nats.Msg) {
+		errChan <- wrapError(ErrEventBus, err.Error())
+		err = n.conn.Publish(fmt.Sprintf(deadLetter, msg.Subject), msg.Data)
+		if err != nil {
+			errChan <- wrapError(ErrDeadLetterPublish, err.Error())
+		}
+	}
+	errHandler := func(err error) {
+		errChan <- err
+	}
 	go func() {
 		defer close(errChan)
-		for {
-			select {
-			case <-ctx.Done():
-				errChan <- wrapError(ErrContextCanceled, ctx.Err().Error())
-				return
-			case msg := <-n.messagesChan:
-				event := Message{
-					data: msg.Data,
-				}
-				err := n.bus.Resolve(ctx, event)
-				if err != nil {
-					errChan <- wrapError(ErrEventBus, err.Error())
-					err = n.conn.Publish(fmt.Sprintf(deadLetter, msg.Subject), msg.Data)
-					if err != nil {
-						errChan <- wrapError(ErrDeadLetterPublish, err.Error())
-					}
-				}
-			}
-		}
+		n.processMsgChan(ctx, n.messagesChan, errHandler, errMsgHandler)
 	}()
 	return errChan
+}
+
+// ProcessDead starts cosuming messages from a given subscription's deadLetter
+func (n *NATSBroker) ProcessDead(ctx context.Context) <-chan error {
+	errChan := make(chan error)
+	errHandler := func(err error) {
+		errChan <- err
+	}
+	errMsgHandler := func(err error, _ *nats.Msg) {
+		errHandler(err)
+	}
+	go func() {
+		defer close(errChan)
+		n.processMsgChan(ctx, n.messagesChan, errHandler, errMsgHandler)
+	}()
+	return errChan
+}
+
+func (n *NATSBroker) processMsgChan(
+	ctx context.Context, msgChan chan *nats.Msg,
+	errHandler func(err error),
+	errMsgHandler func(err error, msg *nats.Msg),
+) {
+	pollTicker := time.NewTicker(time.Duration(n.conf.pollingTime) * time.Second)
+	for {
+		defer pollTicker.Stop()
+		select {
+		case <-ctx.Done():
+			errHandler(wrapError(ErrContextCanceled, ctx.Err().Error()))
+			return
+		case <-pollTicker.C:
+			n.conn.Flush()
+		case msg := <-msgChan:
+			event := Message{
+				data: msg.Data,
+			}
+			err := n.bus.Resolve(ctx, event)
+			if err != nil {
+				errMsgHandler(err, msg)
+			}
+		}
+	}
 }
 
 // Message is a wrapper for *nats.Msg
