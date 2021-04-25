@@ -169,6 +169,7 @@ func checkPostsByTag(t *testing.T, result *usecase.Post,
 }
 
 func testMainWrapper(m *testing.M) int {
+	// TODO Use CreateTestContainer func
 	err := godotenv.Load("../.env.test")
 	if err != nil {
 		log.Println("dotenv file not found")

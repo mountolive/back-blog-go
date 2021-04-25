@@ -141,6 +141,7 @@ func TestNATSBroker(t *testing.T) {
 		}
 
 		t.Run("Message consumption", func(t *testing.T) {
+			t.Parallel()
 			timeout := 10 * time.Second
 			subscriptionName := "consume"
 			broker := brokerWithInitializedSubscription(notErroredBus, subscriptionName)
@@ -162,6 +163,7 @@ func TestNATSBroker(t *testing.T) {
 		})
 
 		t.Run("Error from EventBus", func(t *testing.T) {
+			t.Parallel()
 			timeout := 5 * time.Second
 			subscriptionName := "errored"
 			broker := brokerWithInitializedSubscription(erroredBus, "errored")

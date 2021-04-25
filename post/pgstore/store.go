@@ -5,11 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
+	"testing"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/mountolive/back-blog-go/post/usecase"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 )
 
 // Store wrapper, it uses a connection pool
@@ -171,6 +176,75 @@ func (p *PgStore) Filter(ctx context.Context,
 	return posts, nil
 }
 
+// CreateTestContainer creates a DB container for integration tests
+func CreateTestContainer(t *testing.T) {
+	err := godotenv.Load("../.env.test")
+	if err != nil {
+		t.Log("dotenv file not found")
+	}
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		t.Fatalf("Error starting docker: %s\n", err)
+	}
+
+	testPass := os.Getenv("POSTGRES_TEST_PASSWORD")
+	testUser := os.Getenv("POSTGRES_TEST_USER")
+	hostPort := "5433"
+	containerPort := "5432"
+	containerName := "blog_post_test"
+
+	runOptions := &dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "13.1",
+		Env: []string{
+			fmt.Sprintf("POSTGRES_PASSWORD=%s", testPass),
+			fmt.Sprintf("POSTGRES_USER=%s", testUser),
+		},
+		ExposedPorts: []string{containerPort},
+		Name:         containerName,
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			docker.Port(containerPort): {
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: hostPort,
+				},
+			},
+		},
+	}
+
+	container, err := pool.RunWithOptions(runOptions)
+	if err != nil {
+		t.Fatalf("error occurred setting the container: %s", err)
+	}
+	defer func() {
+		if err := pool.Purge(container); err != nil {
+			err2 := pool.RemoveContainerByName(containerName)
+			if err2 != nil {
+				t.Fatalf("error removing the container: %s\n", err2)
+			}
+			_ = pool.RemoveContainerByName(containerName)
+			t.Fatalf("error purging the container: %s\n", err)
+		}
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	retryFunc := func() error {
+		store, err = NewPostPgStore(ctx,
+			fmt.Sprintf("postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
+				testUser, testPass, hostPort, testUser),
+		)
+		return err
+	}
+	if err := pool.Retry(retryFunc); err != nil {
+		errRemove := pool.RemoveContainerByName(containerName)
+		if errRemove != nil {
+			t.Fatalf("error removing the container: %s\n", errRemove)
+		}
+		t.Fatalf("An error occurred initializing the db: %s\n", err)
+	}
+}
+
 func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
@@ -193,9 +267,9 @@ func (p *PgStore) createPostAndTagTable(ctx context.Context) error {
 
          CREATE TABLE IF NOT EXISTS posts (
            id         UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
-           creator    VARCHAR(100) CHECK (creator <> ''),
-           title      VARCHAR(500) CHECK (title <> ''),
-           content    VARCHAR(5000) CHECK (content <> ''),
+           creator    TEXT CHECK (creator <> ''),
+           title      TEXT CHECK (title <> ''),
+           content    TEXT CHECK (content <> ''),
            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
          );
