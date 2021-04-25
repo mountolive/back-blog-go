@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/mountolive/back-blog-go/post/command"
@@ -11,12 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testCase struct {
+type baseTestCase struct {
 	name        string
 	description string
 	store       usecase.PostStore
 	params      eventbus.Params
 	expectedErr error
+}
+
+type createTestCase struct {
+	baseTestCase
+	checker usecase.CreatorChecker
 }
 
 func TestCreatePost(t *testing.T) {
@@ -26,10 +32,12 @@ func TestCreatePost(t *testing.T) {
 	})
 
 	require := require.New(t)
-	testCases := []testCase{
+	checkerErr := errors.New("checker errored")
+	testCases := []createTestCase{
 		{
 			name:        "Creator checker error",
 			description: "Errored execution when trying to retrieve a creator",
+			checker:     &mockErroredChecker{checkerErr},
 			store:       &mockStore{},
 			params: map[string]interface{}{
 				"creator": "some-creator",
@@ -37,11 +45,13 @@ func TestCreatePost(t *testing.T) {
 				"content": "some content",
 				"tags":    []string{"tag1", "tag2"},
 			},
+			expectedErr: checkerErr,
 		},
 		{
 			name:        "Correct",
 			description: "Not errored execution",
 			store:       &mockStore{},
+			checker:     &mockTrueChecker{},
 			params: map[string]interface{}{
 				"creator": "some-creator",
 				"title":   "title",
@@ -73,7 +83,7 @@ func TestUpdatePost(t *testing.T) {
 	})
 
 	require := require.New(t)
-	testCases := []testCase{
+	testCases := []baseTestCase{
 		{
 			name:        "Correct",
 			description: "Not errored execution",
@@ -91,7 +101,7 @@ func TestUpdatePost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			handler := command.NewCreatePost(tc.store)
+			handler := command.NewUpdatePost(tc.store)
 			err := handler.Handle(context.Background(), tc.params)
 			require.Equal(tc.expectedErr, err)
 		})

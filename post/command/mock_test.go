@@ -1,6 +1,8 @@
 package command_test
 
-import "context"
+import (
+	"context"
+)
 
 type mockStore struct{}
 
@@ -38,4 +40,24 @@ func (*mockStoreErrored) Filter(context.Context, *GeneralFilter) ([]*Post, error
 
 func (*mockStoreErrored) ReadOne(context.Context, string) (*Post, error) {
 	return nil, nil
+}
+
+type mockTrueChecker struct{}
+
+func (m *mockTrueChecker) CheckExistence(ctx context.Context, c string) (bool, error) {
+	return true, nil
+}
+
+type mockFalseChecker struct{}
+
+func (m *mockFalseChecker) CheckExistence(ctx context.Context, c string) (bool, error) {
+	return false, nil
+}
+
+type mockErroredChecker struct {
+	err error
+}
+
+func (m *mockErroredChecker) CheckExistence(ctx context.Context, c string) (bool, error) {
+	return false, err
 }
