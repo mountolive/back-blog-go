@@ -2,9 +2,21 @@ package command
 
 import (
 	"context"
+	"errors"
 
 	"github.com/mountolive/back-blog-go/post/eventbus"
 	"github.com/mountolive/back-blog-go/post/usecase"
+)
+
+var (
+	// ErrIDMissing is self-described
+	ErrIDMissing = errors.New("id missing")
+	// ErrContentMissing is self-described
+	ErrContentMissing = errors.New("content missing")
+	// ErrCreatorMissing is self-described
+	ErrCreatorMissing = errors.New("creator missing")
+	// ErrTitleMissing is self-described
+	ErrTitleMissing = errors.New("title missing")
 )
 
 // NewCreatePost is a constructor

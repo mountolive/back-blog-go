@@ -177,7 +177,7 @@ func (p *PgStore) Filter(ctx context.Context,
 }
 
 // CreateTestContainer creates a DB container for integration tests
-func CreateTestContainer(t *testing.T) {
+func CreateTestContainer(t *testing.T) *PgStore {
 	err := godotenv.Load("../.env.test")
 	if err != nil {
 		t.Log("dotenv file not found")
@@ -229,6 +229,7 @@ func CreateTestContainer(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	var store *PgStore
 	retryFunc := func() error {
 		store, err = NewPostPgStore(ctx,
 			fmt.Sprintf("postgresql://%s:%s@localhost:%s/%s?sslmode=disable",
@@ -243,6 +244,7 @@ func CreateTestContainer(t *testing.T) {
 		}
 		t.Fatalf("An error occurred initializing the db: %s\n", err)
 	}
+	return store
 }
 
 func (p *PgStore) createPostAndTagTable(ctx context.Context) error {

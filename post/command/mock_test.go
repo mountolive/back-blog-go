@@ -2,23 +2,25 @@ package command_test
 
 import (
 	"context"
+
+	"github.com/mountolive/back-blog-go/post/usecase"
 )
 
 type mockStore struct{}
 
-func (*mockStore) Create(context.Context, *CreatePostDto) (*Post, error) {
+func (*mockStore) Create(context.Context, *usecase.CreatePostDto) (*usecase.Post, error) {
 	return nil, nil
 }
 
-func (*mockStore) Update(context.Context, *UpdatePostDto) (*Post, error) {
+func (*mockStore) Update(context.Context, *usecase.UpdatePostDto) (*usecase.Post, error) {
 	return nil, nil
 }
 
-func (*mockStore) Filter(context.Context, *GeneralFilter) ([]*Post, error) {
+func (*mockStore) Filter(context.Context, *usecase.GeneralFilter) ([]*usecase.Post, error) {
 	return nil, nil
 }
 
-func (*mockStore) ReadOne(context.Context, string) (*Post, error) {
+func (*mockStore) ReadOne(context.Context, string) (*usecase.Post, error) {
 	return nil, nil
 }
 
@@ -26,19 +28,19 @@ type mockStoreErrored struct {
 	err error
 }
 
-func (m *mockStoreErrored) Create(context.Context, *CreatePostDto) (*Post, error) {
+func (m *mockStoreErrored) Create(context.Context, *usecase.CreatePostDto) (*usecase.Post, error) {
 	return nil, m.err
 }
 
-func (m *mockStoreErrored) Update(context.Context, *UpdatePostDto) (*Post, error) {
+func (m *mockStoreErrored) Update(context.Context, *usecase.UpdatePostDto) (*usecase.Post, error) {
 	return nil, m.err
 }
 
-func (*mockStoreErrored) Filter(context.Context, *GeneralFilter) ([]*Post, error) {
+func (*mockStoreErrored) Filter(context.Context, *usecase.GeneralFilter) ([]*usecase.Post, error) {
 	return nil, nil
 }
 
-func (*mockStoreErrored) ReadOne(context.Context, string) (*Post, error) {
+func (*mockStoreErrored) ReadOne(context.Context, string) (*usecase.Post, error) {
 	return nil, nil
 }
 
@@ -59,5 +61,5 @@ type mockErroredChecker struct {
 }
 
 func (m *mockErroredChecker) CheckExistence(ctx context.Context, c string) (bool, error) {
-	return false, err
+	return false, m.err
 }
