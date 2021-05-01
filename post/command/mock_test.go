@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/mountolive/back-blog-go/post/usecase"
 )
@@ -62,4 +63,16 @@ type mockErroredChecker struct {
 
 func (m *mockErroredChecker) CheckExistence(ctx context.Context, c string) (bool, error) {
 	return false, m.err
+}
+
+type mockSanitizer struct{}
+
+func (mockSanitizer) SanitizeContent(v string) string {
+	return v
+}
+
+type mockLogger struct{}
+
+func (mockLogger) LogError(err error) {
+	fmt.Println("logged:", err)
 }

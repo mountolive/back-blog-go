@@ -43,6 +43,7 @@ func TestCreatePost(t *testing.T) {
 		"content": "some content",
 		"tags":    []string{"tag1", "tag2"},
 	}
+	createErr := errors.New("create error")
 	testCases := []createTestCase{
 		{
 			name:        "Missing content error",
@@ -75,6 +76,50 @@ func TestCreatePost(t *testing.T) {
 			expectedErr: command.ErrCreatorMissing,
 		},
 		{
+			name:        "Wrong Creator type error",
+			description: "Errored execution when payload has a creator parameter that's not a string",
+			params: eventbus.Params{
+				"creator": []string{},
+				"title":   "title",
+				"content": "content",
+				"tags":    []string{"tag1"},
+			},
+			expectedErr: command.NewErrWrongType("creator", "string"),
+		},
+		{
+			name:        "Wrong Content type error",
+			description: "Errored execution when payload has a content parameter that's not a string",
+			params: eventbus.Params{
+				"creator": "creator",
+				"title":   "title",
+				"content": 1,
+				"tags":    []string{"tag1"},
+			},
+			expectedErr: command.NewErrWrongType("content", "string"),
+		},
+		{
+			name:        "Wrong Title type error",
+			description: "Errored execution when payload has a title parameter that's not a string",
+			params: eventbus.Params{
+				"creator": "creator",
+				"title":   1,
+				"content": "content",
+				"tags":    []string{"tag1"},
+			},
+			expectedErr: command.NewErrWrongType("title", "string"),
+		},
+		{
+			name:        "Wrong Tags type error",
+			description: "Errored execution when payload has a tags parameter that's not a slice",
+			params: eventbus.Params{
+				"creator": "some-creator",
+				"title":   "title",
+				"content": "some content",
+				"tags":    "tag1",
+			},
+			expectedErr: command.NewErrWrongType("tags", "[]string"),
+		},
+		{
 			name:        "Creator checker error",
 			description: "Errored execution when trying to retrieve a creator",
 			checker:     &mockErroredChecker{errors.New("checker errored")},
@@ -94,9 +139,9 @@ func TestCreatePost(t *testing.T) {
 			name:        "Store Create error",
 			description: "Errored execution when trying to execute store's Create",
 			checker:     &mockTrueChecker{},
-			store:       &mockStoreErrored{errors.New("create error")},
+			store:       &mockStoreErrored{createErr},
 			params:      correctParams,
-			expectedErr: errors.New("create error"),
+			expectedErr: createErr,
 		},
 		{
 			name:        "Correct",
@@ -111,9 +156,15 @@ func TestCreatePost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			handler := command.NewCreatePost(tc.store, tc.checker)
+			repo := usecase.PostRepository{
+				Store:     tc.store,
+				Checker:   tc.checker,
+				Sanitizer: &mockSanitizer{},
+				Logger:    &mockLogger{},
+			}
+			handler := command.NewCreatePost(repo)
 			err := handler.Handle(context.Background(), tc.params)
-			require.Equal(tc.expectedErr, err)
+			require.True(errors.Is(err, tc.expectedErr), "got %v, expected %v", err, tc.expectedErr)
 		})
 	}
 }
@@ -130,6 +181,7 @@ func TestUpdatePost(t *testing.T) {
 		"content": "some content",
 		"tags":    []string{"tag1", "tag2"},
 	}
+	updateErr := errors.New("update error")
 	require := require.New(t)
 	testCases := []updateTestCase{
 		{
@@ -164,11 +216,55 @@ func TestUpdatePost(t *testing.T) {
 			expectedErr: command.ErrTitleMissing,
 		},
 		{
+			name:        "Wrong Id type error",
+			description: "Errored execution when payload has a id parameter that's not a string",
+			params: eventbus.Params{
+				"id":      []string{},
+				"title":   "title",
+				"content": "content",
+				"tags":    []string{"tag1"},
+			},
+			expectedErr: command.NewErrWrongType("id", "string"),
+		},
+		{
+			name:        "Wrong Content type error",
+			description: "Errored execution when payload has a content parameter that's not a string",
+			params: eventbus.Params{
+				"id":      "some-id",
+				"title":   "title",
+				"content": 1,
+				"tags":    []string{"tag1"},
+			},
+			expectedErr: command.NewErrWrongType("content", "string"),
+		},
+		{
+			name:        "Wrong Title type error",
+			description: "Errored execution when payload has a title parameter that's not a string",
+			params: eventbus.Params{
+				"id":      "some-id",
+				"title":   1,
+				"content": "content",
+				"tags":    []string{"tag1"},
+			},
+			expectedErr: command.NewErrWrongType("title", "string"),
+		},
+		{
+			name:        "Wrong Tags type error",
+			description: "Errored execution when payload has a tags parameter that's not a slice",
+			params: eventbus.Params{
+				"id":      "some-id",
+				"title":   "title",
+				"content": "some content",
+				"tags":    "tag1",
+			},
+			expectedErr: command.NewErrWrongType("tags", "[]string"),
+		},
+		{
 			name:        "Store Update error",
 			description: "Errored execution when trying to excute store's Update",
-			store:       &mockStoreErrored{errors.New("update error")},
+			store:       &mockStoreErrored{updateErr},
 			params:      correctParams,
-			expectedErr: errors.New("update error"),
+			expectedErr: updateErr,
 		},
 		{
 			name:        "Correct",
@@ -182,14 +278,20 @@ func TestUpdatePost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			handler := command.NewUpdatePost(tc.store)
+			repo := usecase.PostRepository{
+				Store:     tc.store,
+				Checker:   &mockTrueChecker{},
+				Sanitizer: &mockSanitizer{},
+				Logger:    &mockLogger{},
+			}
+			handler := command.NewUpdatePost(repo)
 			err := handler.Handle(context.Background(), tc.params)
-			require.Equal(tc.expectedErr, err)
+			require.True(errors.Is(err, tc.expectedErr), "got %v, expected %v", err, tc.expectedErr)
 		})
 	}
 }
 
-func TestIntegration(t *testing.T) {
+func TestStoreIntegration(t *testing.T) {
 	require := require.New(t)
 	store := pgstore.CreateTestContainer(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -201,17 +303,23 @@ func TestIntegration(t *testing.T) {
 		"content": "some content",
 		"tags":    []string{tag1, "tag2"},
 	}
-	createHandler := command.NewCreatePost(store, &mockTrueChecker{})
+	repo := usecase.PostRepository{
+		Store:     store,
+		Checker:   &mockTrueChecker{},
+		Sanitizer: &mockSanitizer{},
+		Logger:    &mockLogger{},
+	}
+	createHandler := command.NewCreatePost(repo)
 	err := createHandler.Handle(ctx, correctParams)
 	require.NoError(err)
-	filter := &usecase.GeneralFilter{}
+	filter := &usecase.GeneralFilter{PageSize: 1}
 	filter.Tag = tag1
 	createdPosts, err := store.Filter(ctx, filter)
 	require.NoError(err)
 	require.Len(createdPosts, 1)
 	correctParams["id"] = createdPosts[0].Id
 	correctParams["title"] = "some-other-title"
-	updateHandler := command.NewUpdatePost(store)
+	updateHandler := command.NewUpdatePost(repo)
 	err = updateHandler.Handle(ctx, correctParams)
 	require.NoError(err)
 }

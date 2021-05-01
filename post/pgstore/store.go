@@ -216,7 +216,7 @@ func CreateTestContainer(t *testing.T) *PgStore {
 	if err != nil {
 		t.Fatalf("error occurred setting the container: %s", err)
 	}
-	defer func() {
+	t.Cleanup(func() {
 		if err := pool.Purge(container); err != nil {
 			err2 := pool.RemoveContainerByName(containerName)
 			if err2 != nil {
@@ -225,7 +225,7 @@ func CreateTestContainer(t *testing.T) *PgStore {
 			_ = pool.RemoveContainerByName(containerName)
 			t.Fatalf("error purging the container: %s\n", err)
 		}
-	}()
+	})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
