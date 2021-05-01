@@ -121,7 +121,7 @@ func NewUpdatePost(repo usecase.PostRepository) UpdatePost {
 }
 
 // UpdatePost is a command handler
-type UpdatePost struct { // TODO Implement
+type UpdatePost struct {
 	repo usecase.PostRepository
 }
 

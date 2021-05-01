@@ -87,6 +87,8 @@ type PostRepository struct {
 }
 
 // Common sentinel errors
+// TODO Fix naming convention on errors: avoid first uppercase letter
+// TODO Use patter Err* for errors' names
 var (
 	OperationCanceledError = errors.New("The context of the operation was canceled")
 	PostNotFoundError      = errors.New("The post requested was not found")

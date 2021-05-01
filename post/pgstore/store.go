@@ -70,6 +70,7 @@ func NewPostPgStore(ctx context.Context, url string) (*PgStore, error) {
 }
 
 // Creates a Post with data with corresponding CreatePostDto
+// TODO Remove Post from return tuple, Create, pgstore
 func (p *PgStore) Create(ctx context.Context,
 	create *usecase.CreatePostDto) (*usecase.Post, error) {
 	tx, err := p.db.Begin(ctx)
@@ -114,6 +115,7 @@ func (p *PgStore) Create(ctx context.Context,
 }
 
 // Updates the corresponding post with the Id from the UpdatePostDto passed
+// TODO Remove Post from return tuple, Update, pgstore
 func (p *PgStore) Update(ctx context.Context,
 	update *usecase.UpdatePostDto) (*usecase.Post, error) {
 	tx, err := p.db.Begin(ctx)
