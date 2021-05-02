@@ -1,28 +1,43 @@
 package httpx
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 )
 
+type Middleware func(handler http.HandlerFunc) http.HandlerFunc
+
+type Handler struct {
+	handlerFunc http.HandlerFunc
+	middlewares []Middleware
+}
+
 // Router registers URL paths against corresponding http handlers
 type Router struct {
-	handlers map[string]http.HandlerFunc
-	cache    map[string]*regexp.Regexp
+	globalMiddlewares []Middleware
+	handlers          map[string]Handler
+	cache             map[string]*regexp.Regexp
 }
 
 // NewRouter is a constructor
-func NewRouter() *Router {
+// middlewares passed to the router will be applied after per-route middlewares
+func NewRouter(middlewares ...Middleware) *Router {
 	return &Router{
-		handlers: make(map[string]http.HandlerFunc),
-		cache:    make(map[string]*regexp.Regexp),
+		globalMiddlewares: middlewares,
+		handlers:          make(map[string]Handler),
+		cache:             make(map[string]*regexp.Regexp),
 	}
 }
 
 // Add registers a handler with the corresponding path
 // path can be a regexp
-func (r *Router) Add(path string, handler http.HandlerFunc) error {
-	r.handlers[path] = handler
+// middlewares' order matters: they'll be applied in insertion order
+// path should be of the form: `HTTP_METHOD url`
+func (r *Router) Add(
+	path string, handler http.HandlerFunc, mws ...Middleware,
+) error {
+	r.handlers[path] = Handler{handler, mws}
 	regComp, err := regexp.Compile(path)
 	if err != nil {
 		return err
@@ -34,9 +49,17 @@ func (r *Router) Add(path string, handler http.HandlerFunc) error {
 // ServeHTTP implements the http server interface
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	reqPath := req.Method + " " + req.URL.Path
+	fmt.Println(reqPath)
 	for path, handler := range r.handlers {
 		if r.cache[path].MatchString(reqPath) {
-			handler(w, req)
+			composed := handler.handlerFunc
+			for _, mw := range handler.middlewares {
+				composed = mw(composed)
+			}
+			for _, gmw := range r.globalMiddlewares {
+				composed = gmw(composed)
+			}
+			composed(w, req)
 			return
 		}
 	}
