@@ -10,13 +10,13 @@ import (
 
 // Post entity representation
 type Post struct {
-	Id        string
-	Creator   string
-	Title     string
-	Content   string
-	Tags      []string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id        string    `json:"id"`
+	Creator   string    `json:"creator"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	Tags      []string  `json:"tags"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
 // Dto for handling creation of Posts
