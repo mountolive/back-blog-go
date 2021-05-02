@@ -21,7 +21,7 @@ type Router struct {
 }
 
 // NewRouter is a constructor
-// middlewares passed to the router will be applied after per-route middlewares
+// middlewares passed to the router will be applied before per-route middlewares
 func NewRouter(middlewares ...Middleware) *Router {
 	return &Router{
 		globalMiddlewares: middlewares,
@@ -53,11 +53,11 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	for path, handler := range r.handlers {
 		if r.cache[path].MatchString(reqPath) {
 			composed := handler.handlerFunc
-			for _, mw := range handler.middlewares {
-				composed = mw(composed)
-			}
 			for _, gmw := range r.globalMiddlewares {
 				composed = gmw(composed)
+			}
+			for _, mw := range handler.middlewares {
+				composed = mw(composed)
 			}
 			composed(w, req)
 			return

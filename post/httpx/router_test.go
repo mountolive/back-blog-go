@@ -77,9 +77,11 @@ func TestServeHTTP(t *testing.T) {
 	totalGM := 5
 	counter := make([]int, totalGM)
 	gmws := make([]httpx.Middleware, totalGM)
+	var orderKeeper []int
 	for i := 0; i < totalGM; i++ {
 		i := i
 		gmws[i] = func(next http.HandlerFunc) http.HandlerFunc {
+			orderKeeper = append(orderKeeper, i)
 			counter[i] += 1
 			return next
 		}
@@ -96,6 +98,7 @@ func TestServeHTTP(t *testing.T) {
 	for i := 0; i < totalRM; i++ {
 		i := i
 		rmws[i] = func(next http.HandlerFunc) http.HandlerFunc {
+			orderKeeper = append(orderKeeper, i+totalRM+1)
 			routeCounter[i] += 1
 			return next
 		}
@@ -109,5 +112,9 @@ func TestServeHTTP(t *testing.T) {
 	}
 	for _, r := range routeCounter {
 		require.Equal(1, r)
+	}
+	require.Len(orderKeeper, totalGM+totalRM)
+	for i, v := range orderKeeper {
+		require.Equal(i, v)
 	}
 }
