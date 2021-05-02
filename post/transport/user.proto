@@ -1,5 +1,6 @@
 syntax = "proto3";
 package transport;
+option go_package = "./transport";
 
 service User {
   rpc CheckUser (CheckUserRequest) returns (CheckUserResponse) {}
