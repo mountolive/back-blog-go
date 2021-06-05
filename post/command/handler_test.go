@@ -156,7 +156,7 @@ func TestCreatePost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			repo := usecase.PostRepository{
+			repo := &usecase.PostRepository{
 				Store:     tc.store,
 				Checker:   tc.checker,
 				Sanitizer: &mockSanitizer{},
@@ -278,7 +278,7 @@ func TestUpdatePost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			repo := usecase.PostRepository{
+			repo := &usecase.PostRepository{
 				Store:     tc.store,
 				Checker:   &mockTrueChecker{},
 				Sanitizer: &mockSanitizer{},
@@ -303,7 +303,7 @@ func TestStoreIntegration(t *testing.T) {
 		"content": "some content",
 		"tags":    []string{tag1, "tag2"},
 	}
-	repo := usecase.PostRepository{
+	repo := &usecase.PostRepository{
 		Store:     store,
 		Checker:   &mockTrueChecker{},
 		Sanitizer: &mockSanitizer{},

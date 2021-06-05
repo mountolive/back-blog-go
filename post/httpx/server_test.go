@@ -1,6 +1,9 @@
 package httpx_test
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,8 +15,11 @@ import (
 )
 
 func checkHandler(
-	t *testing.T, repo usecase.PostRepository, route string,
-	handler http.HandlerFunc, expStatusCode int, expectedBody []byte,
+	t *testing.T,
+	route string,
+	handler http.HandlerFunc,
+	expStatusCode int,
+	expectedBody []byte,
 ) {
 	req := httptest.NewRequest(http.MethodGet, route, nil)
 	w := httptest.NewRecorder()
@@ -30,32 +36,76 @@ func TestFilterByTag(t *testing.T) {
 
 	t.Run("Repository error, InternalServerError", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add erroring condition, Tag filter
+		internalErrMsg := "something bad happened"
+		repo := &RepositoryMock{
+			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
+				return nil, errors.New(internalErrMsg)
+			},
 		}
 		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Repository error, tag
-		checkHandler(t, repo, "/someroute?tag=mytag", server.FilterByTag, http.StatusInternalServerError, []byte{})
+		expectedErr := httpx.APIError{
+			HTTPCode: 500,
+			Error: httpx.DetailError{
+				Code:    100,
+				Message: internalErrMsg,
+			},
+		}
+		serializedErr, err := json.Marshal(expectedErr)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute?tag=mytag",
+			server.FilterByTag,
+			http.StatusInternalServerError,
+			serializedErr,
+		)
 	})
 
-	t.Run("Missing tag, NotFound", func(t *testing.T) {
+	t.Run("Missing tag, BadRequest", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add mocked returned Posts, Missing tag
+		server := httpx.NewServer(nil)
+		expectedErr := httpx.APIError{
+			HTTPCode: 400,
+			Error: httpx.DetailError{
+				Code:    200,
+				Message: "tag parameter missing from query",
+			},
 		}
-		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Missing tag
-		checkHandler(t, repo, "/someroute", server.FilterByTag, http.StatusNotFound, []byte{})
+		serializedErr, err := json.Marshal(expectedErr)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute",
+			server.FilterByTag,
+			http.StatusBadRequest,
+			serializedErr,
+		)
 	})
 
 	t.Run("Correct, OK", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add mocked returned Posts, Correct, tag
+		expectedPosts := []*usecase.Post{
+			&usecase.Post{
+				Id:      "some-id",
+				Content: "some content",
+				Creator: "some creator",
+			},
+		}
+		repo := &RepositoryMock{
+			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
+				return expectedPosts, nil
+			},
 		}
 		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Correct, tag
-		checkHandler(t, repo, "/someroute?tag=sometag", server.FilterByTag, http.StatusOK, []byte{})
+		serializedBody, err := json.Marshal(expectedPosts)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute?tag=some-tag",
+			server.FilterByTag,
+			http.StatusOK,
+			serializedBody,
+		)
 	})
 }
 
@@ -64,35 +114,109 @@ func TestFilterByDateRange(t *testing.T) {
 
 	t.Run("Repository error, InternalServerError", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add erroring condition, Date range filter
+		internalErrMsg := "something bad happened"
+		repo := &RepositoryMock{
+			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
+				return nil, errors.New(internalErrMsg)
+			},
 		}
 		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Repository error, date range
-		// TODO Change route to hold date range params
-		checkHandler(t, repo, "/someroute?tag=mytag", server.FilterByDateRange, http.StatusInternalServerError, []byte{})
+		expectedErr := httpx.APIError{
+			HTTPCode: 500,
+			Error: httpx.DetailError{
+				Code:    100,
+				Message: internalErrMsg,
+			},
+		}
+		serializedErr, err := json.Marshal(expectedErr)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute?start_date=2020-05-20&end_date=2020-05-21",
+			server.FilterByDateRange,
+			http.StatusInternalServerError,
+			serializedErr,
+		)
 	})
 
-	t.Run("Missing tag, NotFound", func(t *testing.T) {
+	t.Run("Missing start_date and end_date, BadRequest", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add mocked returned Posts, Missing date range
+		server := httpx.NewServer(nil)
+		expectedErr := httpx.APIError{
+			HTTPCode: 400,
+			Error: httpx.DetailError{
+				Code:    400,
+				Message: "start_date and end_date parameters missing from query",
+			},
 		}
-		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Missing date range
-		// TODO Change route to hold date range params
-		checkHandler(t, repo, "/someroute", server.FilterByDateRange, http.StatusNotFound, []byte{})
+		serializedErr, err := json.Marshal(expectedErr)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute",
+			server.FilterByDateRange,
+			http.StatusBadRequest,
+			serializedErr,
+		)
 	})
 
-	t.Run("Correct, OK", func(t *testing.T) {
+	expectedPost := &usecase.Post{
+		Id:      "some-id",
+		Content: "some content",
+		Creator: "some creator",
+	}
+	serializedBody, err := json.Marshal(expectedPost)
+	require.NoError(t, err)
+
+	t.Run("Correct only start_date parameter, OK", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add mocked returned Posts, Correct, date range
+		repo := &RepositoryMock{
+			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
+				return expectedPost, nil
+			},
 		}
 		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Correct, date range
-		// TODO Change route to hold date range params
-		checkHandler(t, repo, "/someroute?tag=sometag", server.FilterByDateRange, http.StatusOK, []byte{})
+		checkHandler(
+			t,
+			"/someroute?start_date=2020-05-21",
+			server.FilterByDateRange,
+			http.StatusOK,
+			serializedBody,
+		)
+	})
+
+	t.Run("Correct only end_date parameter, OK", func(t *testing.T) {
+		defer recoverer(t)
+		repo := &RepositoryMock{
+			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
+				return expectedPost, nil
+			},
+		}
+		server := httpx.NewServer(repo)
+		checkHandler(
+			t,
+			"/someroute?end_date=2020-05-21",
+			server.FilterByDateRange,
+			http.StatusOK,
+			serializedBody,
+		)
+	})
+
+	t.Run("Correct both start_date and end_date parameter, OK", func(t *testing.T) {
+		defer recoverer(t)
+		repo := &RepositoryMock{
+			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
+				return expectedPost, nil
+			},
+		}
+		server := httpx.NewServer(repo)
+		checkHandler(
+			t,
+			"/someroute?start_date=2020-05-19&end_date=2020-05-21",
+			server.FilterByDateRange,
+			http.StatusOK,
+			serializedBody,
+		)
 	})
 }
 
@@ -101,31 +225,73 @@ func TestGetOne(t *testing.T) {
 
 	t.Run("Repository error, InternalServerError", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add erroring condition, by id
+		internalErrMsg := "something bad happened"
+		repo := &RepositoryMock{
+			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
+				return nil, errors.New(internalErrMsg)
+			},
 		}
 		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Repository error, by id
-		checkHandler(t, repo, "/someroute/the-id", server.GetPost, http.StatusInternalServerError, []byte{})
+		expectedErr := httpx.APIError{
+			HTTPCode: 500,
+			Error: httpx.DetailError{
+				Code:    100,
+				Message: internalErrMsg,
+			},
+		}
+		serializedErr, err := json.Marshal(expectedErr)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute/some-id",
+			server.GetPost,
+			http.StatusInternalServerError,
+			serializedErr,
+		)
 	})
 
-	t.Run("Missing id, NotFound", func(t *testing.T) {
+	t.Run("Unexistent Post, NotFound", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add mocked returned Posts, by id
+		server := httpx.NewServer(nil)
+		expectedErr := httpx.APIError{
+			HTTPCode: 404,
+			Error: httpx.DetailError{
+				Code:    300,
+				Message: "post with passed id not found",
+			},
 		}
-		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Missing id
-		checkHandler(t, repo, "/someroute", server.GetPost, http.StatusNotFound, []byte{})
+		serializedErr, err := json.Marshal(expectedErr)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute/not-found-id",
+			server.GetPost,
+			http.StatusNotFound,
+			serializedErr,
+		)
 	})
 
 	t.Run("Correct, OK", func(t *testing.T) {
 		defer recoverer(t)
-		repo := usecase.PostRepository{
-			// TODO Add mocked returned Posts, Correct, by id
+		expectedPost := &usecase.Post{
+			Id:      "some-id",
+			Content: "some content",
+			Creator: "some creator",
+		}
+		repo := &RepositoryMock{
+			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
+				return expectedPost, nil
+			},
 		}
 		server := httpx.NewServer(repo)
-		// TODO Create expectedBody, Correct, by id
-		checkHandler(t, repo, "/someroute/some-id", server.GetPost, http.StatusOK, []byte{})
+		serializedBody, err := json.Marshal(expectedPost)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute/some-id",
+			server.GetPost,
+			http.StatusOK,
+			serializedBody,
+		)
 	})
 }

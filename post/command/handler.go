@@ -45,13 +45,13 @@ const (
 )
 
 // NewCreatePost is a constructor
-func NewCreatePost(repo usecase.PostRepository) CreatePost {
+func NewCreatePost(repo usecase.Repository) CreatePost {
 	return CreatePost{repo}
 }
 
 // CreatePost is a command handler
 type CreatePost struct {
-	repo usecase.PostRepository
+	repo usecase.Repository
 }
 
 var errCreatePostHandler = "create post: %w"
@@ -116,13 +116,13 @@ func (c CreatePost) Handle(ctx context.Context, params eventbus.Params) error {
 }
 
 // NewUpdatePost is a constructor
-func NewUpdatePost(repo usecase.PostRepository) UpdatePost {
+func NewUpdatePost(repo usecase.Repository) UpdatePost {
 	return UpdatePost{repo: repo}
 }
 
 // UpdatePost is a command handler
 type UpdatePost struct {
-	repo usecase.PostRepository
+	repo usecase.Repository
 }
 
 var errUpdatePostHandler = "update post: %w"

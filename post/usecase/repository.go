@@ -79,6 +79,17 @@ type CreatorChecker interface {
 	CheckExistence(context.Context, string) (bool, error)
 }
 
+// Repository defines the basic contract for Post's usecases
+type Repository interface {
+	CreatePost(context.Context, *CreatePostDto) (*Post, error)
+	UpdatePost(context.Context, *UpdatePostDto) (*Post, error)
+	GetPost(context.Context, string) (*Post, error)
+	FilterByTag(ctx context.Context, filter *ByTagDto, page, pageSize int) ([]*Post, error)
+	FilterByDateRange(ctx context.Context, filter *ByDateRangeDto, page, pageSize int) ([]*Post, error)
+}
+
+var _ Repository = &PostRepository{}
+
 type PostRepository struct {
 	Store     PostStore
 	Checker   CreatorChecker
