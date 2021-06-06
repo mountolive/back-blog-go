@@ -61,43 +61,42 @@ func TestFilterByTag(t *testing.T) {
 		)
 	})
 
-	t.Run("Missing tag, BadRequest", func(t *testing.T) {
-		defer recoverer(t)
-		server := httpx.NewServer(nil)
-		expectedErr := httpx.APIError{
-			HTTPCode: 400,
-			Error: httpx.DetailError{
-				Code:    200,
-				Message: "tag parameter missing from query",
-			},
-		}
-		serializedErr, err := json.Marshal(expectedErr)
-		require.NoError(t, err)
-		checkHandler(
-			t,
-			"/someroute",
-			server.FilterByTag,
-			http.StatusBadRequest,
-			serializedErr,
-		)
-	})
+	expectedPosts := []*usecase.Post{
+		&usecase.Post{
+			Id:      "some-id",
+			Content: "some content",
+			Creator: "some creator",
+		},
+	}
+	serializedBody, err := json.Marshal(expectedPosts)
+	require.NoError(t, err)
 
-	t.Run("Correct, OK", func(t *testing.T) {
+	t.Run("Missing tag, OK", func(t *testing.T) {
 		defer recoverer(t)
-		expectedPosts := []*usecase.Post{
-			&usecase.Post{
-				Id:      "some-id",
-				Content: "some content",
-				Creator: "some creator",
-			},
-		}
 		repo := &RepositoryMock{
 			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
 			},
 		}
 		server := httpx.NewServer(repo)
-		serializedBody, err := json.Marshal(expectedPosts)
+		require.NoError(t, err)
+		checkHandler(
+			t,
+			"/someroute",
+			server.FilterByTag,
+			http.StatusOK,
+			serializedBody,
+		)
+	})
+
+	t.Run("Correct, OK", func(t *testing.T) {
+		defer recoverer(t)
+		repo := &RepositoryMock{
+			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
+				return expectedPosts, nil
+			},
+		}
+		server := httpx.NewServer(repo)
 		require.NoError(t, err)
 		checkHandler(
 			t,
@@ -139,40 +138,38 @@ func TestFilterByDateRange(t *testing.T) {
 		)
 	})
 
-	t.Run("Missing start_date and end_date, BadRequest", func(t *testing.T) {
+	expectedPosts := []*usecase.Post{
+		&usecase.Post{
+			Id:      "some-id",
+			Content: "some content",
+			Creator: "some creator",
+		},
+	}
+	serializedBody, err := json.Marshal(expectedPosts)
+	require.NoError(t, err)
+
+	t.Run("Missing start_date and end_date, OK", func(t *testing.T) {
 		defer recoverer(t)
-		server := httpx.NewServer(nil)
-		expectedErr := httpx.APIError{
-			HTTPCode: 400,
-			Error: httpx.DetailError{
-				Code:    400,
-				Message: "start_date and end_date parameters missing from query",
+		repo := &RepositoryMock{
+			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
+				return expectedPosts, nil
 			},
 		}
-		serializedErr, err := json.Marshal(expectedErr)
-		require.NoError(t, err)
+		server := httpx.NewServer(repo)
 		checkHandler(
 			t,
 			"/someroute",
 			server.FilterByDateRange,
-			http.StatusBadRequest,
-			serializedErr,
+			http.StatusOK,
+			serializedBody,
 		)
 	})
-
-	expectedPost := &usecase.Post{
-		Id:      "some-id",
-		Content: "some content",
-		Creator: "some creator",
-	}
-	serializedBody, err := json.Marshal(expectedPost)
-	require.NoError(t, err)
 
 	t.Run("Correct only start_date parameter, OK", func(t *testing.T) {
 		defer recoverer(t)
 		repo := &RepositoryMock{
-			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
-				return expectedPost, nil
+			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
+				return expectedPosts, nil
 			},
 		}
 		server := httpx.NewServer(repo)
@@ -188,8 +185,8 @@ func TestFilterByDateRange(t *testing.T) {
 	t.Run("Correct only end_date parameter, OK", func(t *testing.T) {
 		defer recoverer(t)
 		repo := &RepositoryMock{
-			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
-				return expectedPost, nil
+			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
+				return expectedPosts, nil
 			},
 		}
 		server := httpx.NewServer(repo)
@@ -205,8 +202,8 @@ func TestFilterByDateRange(t *testing.T) {
 	t.Run("Correct both start_date and end_date parameter, OK", func(t *testing.T) {
 		defer recoverer(t)
 		repo := &RepositoryMock{
-			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
-				return expectedPost, nil
+			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
+				return expectedPosts, nil
 			},
 		}
 		server := httpx.NewServer(repo)

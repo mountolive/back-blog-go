@@ -193,6 +193,7 @@ func (r *PostRepository) logErrorAndWrap(err error, msg string) error {
 	return fmt.Errorf("%s: %w \n", msg, err)
 }
 
+// TODO Remove context recreation on Post's repository, unnecessary and error prone
 func checkContextAndRecreate(
 	ctx context.Context) (context.Context, context.CancelFunc, error) {
 	select {
