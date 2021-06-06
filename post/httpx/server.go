@@ -144,7 +144,7 @@ func (s Server) FilterByDateRange(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// TODO This date logic should be part of the Repository and not part of the handler
+	// TODO Date logic for FilterByDateRange should be part of the Repository and not part of the handler
 	if !startDate.IsZero() && !endDate.IsZero() && endDate.Before(startDate) {
 		writeError(w, newEndTimeBeforeStartTimeError())
 		return
