@@ -160,7 +160,6 @@ func TestCreatePost(t *testing.T) {
 				Store:     tc.store,
 				Checker:   tc.checker,
 				Sanitizer: &mockSanitizer{},
-				Logger:    &mockLogger{},
 			}
 			handler := command.NewCreatePost(repo)
 			err := handler.Handle(context.Background(), tc.params)
@@ -282,7 +281,6 @@ func TestUpdatePost(t *testing.T) {
 				Store:     tc.store,
 				Checker:   &mockTrueChecker{},
 				Sanitizer: &mockSanitizer{},
-				Logger:    &mockLogger{},
 			}
 			handler := command.NewUpdatePost(repo)
 			err := handler.Handle(context.Background(), tc.params)
@@ -307,7 +305,6 @@ func TestStoreIntegration(t *testing.T) {
 		Store:     store,
 		Checker:   &mockTrueChecker{},
 		Sanitizer: &mockSanitizer{},
-		Logger:    &mockLogger{},
 	}
 	createHandler := command.NewCreatePost(repo)
 	err := createHandler.Handle(ctx, correctParams)

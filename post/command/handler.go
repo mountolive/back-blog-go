@@ -49,6 +49,9 @@ func NewCreatePost(repo usecase.Repository) CreatePost {
 	return CreatePost{repo}
 }
 
+// CreatePostEventNameV1 is self-described
+const CreatePostEventNameV1 = "posts.v1.create"
+
 // CreatePost is a command handler
 type CreatePost struct {
 	repo usecase.Repository
@@ -119,6 +122,9 @@ func (c CreatePost) Handle(ctx context.Context, params eventbus.Params) error {
 func NewUpdatePost(repo usecase.Repository) UpdatePost {
 	return UpdatePost{repo: repo}
 }
+
+// UpdatePostEventNameV1 is self-described
+const UpdatePostEventNameV1 = "posts.v1.update"
 
 // UpdatePost is a command handler
 type UpdatePost struct {

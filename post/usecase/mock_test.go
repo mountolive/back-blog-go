@@ -3,15 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
-	"fmt"
 )
-
-// Mock logger
-type mockLogger struct{}
-
-func (m *mockLogger) LogError(err error) {
-	fmt.Printf("%v \n", err)
-}
 
 type mockStoreNotEmpty struct{}
 

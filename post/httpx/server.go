@@ -38,6 +38,11 @@ type Server struct {
 	repo usecase.Repository
 }
 
+// NewServer is a constructor
+func NewServer(repo usecase.Repository) Server {
+	return Server{repo}
+}
+
 // APIError wraps the details of any error happened downstream to the http handler
 type APIError struct {
 	HTTPCode int         `json:"-"`
@@ -92,9 +97,15 @@ func newTimeParsingError(err error) APIError {
 	return newInternalServerError(TimeParsingErrorCode, err)
 }
 
-// NewServer is a constructor
-func NewServer(repo usecase.Repository) Server {
-	return Server{repo}
+// Filter wraps both FilterByTag and FilterByDateRange
+func (s Server) Filter(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	tag := query.Get("tag")
+	if tag != "" {
+		s.FilterByTag(w, r)
+		return
+	}
+	s.FilterByDateRange(w, r)
 }
 
 // FilterByTag filters posts by tag

@@ -86,13 +86,9 @@ const (
 // for the passed subscription's name
 func DefaultNATSConfig(subsName string) NATSConfig {
 	return NATSConfig{
-		user:                       "",
-		pass:                       "",
 		subscriptionName:           subsName,
 		deadLetterSubscriptionName: fmt.Sprintf(deadLetter, subsName),
-		host:                       "",
 		pollingTime:                defaultPollingTime,
-		port:                       0,
 	}
 }
 

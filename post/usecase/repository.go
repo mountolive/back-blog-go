@@ -69,10 +69,6 @@ type ContentSanitizer interface {
 	SanitizeContent(string) string
 }
 
-type Logger interface {
-	LogError(err error)
-}
-
 // Defines the needed method for checking that a given creator of
 //    a post indeed exists
 type CreatorChecker interface {
@@ -94,7 +90,6 @@ type PostRepository struct {
 	Store     PostStore
 	Checker   CreatorChecker
 	Sanitizer ContentSanitizer
-	Logger    Logger
 }
 
 // Common sentinel errors
@@ -189,7 +184,6 @@ func (r *PostRepository) FilterByDateRange(ctx context.Context,
 }
 
 func (r *PostRepository) logErrorAndWrap(err error, msg string) error {
-	r.Logger.LogError(err)
 	return fmt.Errorf("%s: %w \n", msg, err)
 }
 
