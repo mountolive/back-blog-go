@@ -35,7 +35,6 @@ func TestFilterByTag(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Repository error, InternalServerError", func(t *testing.T) {
-		defer recoverer(t)
 		internalErrMsg := "something bad happened"
 		repo := &RepositoryMock{
 			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
@@ -72,7 +71,6 @@ func TestFilterByTag(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Missing tag, OK", func(t *testing.T) {
-		defer recoverer(t)
 		repo := &RepositoryMock{
 			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
@@ -90,7 +88,6 @@ func TestFilterByTag(t *testing.T) {
 	})
 
 	t.Run("Correct, OK", func(t *testing.T) {
-		defer recoverer(t)
 		repo := &RepositoryMock{
 			FilterByTagFunc: func(context.Context, *usecase.ByTagDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
@@ -112,7 +109,6 @@ func TestFilterByDateRange(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Repository error, InternalServerError", func(t *testing.T) {
-		defer recoverer(t)
 		internalErrMsg := "something bad happened"
 		repo := &RepositoryMock{
 			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
@@ -149,7 +145,6 @@ func TestFilterByDateRange(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Missing start_date and end_date, OK", func(t *testing.T) {
-		defer recoverer(t)
 		repo := &RepositoryMock{
 			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
@@ -166,7 +161,6 @@ func TestFilterByDateRange(t *testing.T) {
 	})
 
 	t.Run("Correct only start_date parameter, OK", func(t *testing.T) {
-		defer recoverer(t)
 		repo := &RepositoryMock{
 			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
@@ -183,7 +177,6 @@ func TestFilterByDateRange(t *testing.T) {
 	})
 
 	t.Run("Correct only end_date parameter, OK", func(t *testing.T) {
-		defer recoverer(t)
 		repo := &RepositoryMock{
 			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
@@ -200,7 +193,6 @@ func TestFilterByDateRange(t *testing.T) {
 	})
 
 	t.Run("Correct both start_date and end_date parameter, OK", func(t *testing.T) {
-		defer recoverer(t)
 		repo := &RepositoryMock{
 			FilterByDateRangeFunc: func(context.Context, *usecase.ByDateRangeDto, int, int) ([]*usecase.Post, error) {
 				return expectedPosts, nil
@@ -221,7 +213,6 @@ func TestGetOne(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Repository error, InternalServerError", func(t *testing.T) {
-		defer recoverer(t)
 		internalErrMsg := "something bad happened"
 		repo := &RepositoryMock{
 			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
@@ -248,8 +239,12 @@ func TestGetOne(t *testing.T) {
 	})
 
 	t.Run("Unexistent Post, NotFound", func(t *testing.T) {
-		defer recoverer(t)
-		server := httpx.NewServer(nil)
+		repo := &RepositoryMock{
+			GetPostFunc: func(context.Context, string) (*usecase.Post, error) {
+				return nil, nil
+			},
+		}
+		server := httpx.NewServer(repo)
 		expectedErr := httpx.APIError{
 			HTTPCode: 404,
 			Error: httpx.DetailError{
@@ -269,7 +264,6 @@ func TestGetOne(t *testing.T) {
 	})
 
 	t.Run("Correct, OK", func(t *testing.T) {
-		defer recoverer(t)
 		expectedPost := &usecase.Post{
 			Id:      "some-id",
 			Content: "some content",

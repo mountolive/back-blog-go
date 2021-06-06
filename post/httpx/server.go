@@ -16,6 +16,7 @@ const (
 	// default parameters
 	defaultPage     = 0
 	defaultPageSize = 10
+	timeFormat      = "2006-01-02"
 	// standard error codes
 	RepositoryErrorCode             = 100
 	MissingTagErrorCode             = 200
@@ -129,7 +130,7 @@ func (s Server) FilterByDateRange(w http.ResponseWriter, r *http.Request) {
 		err       error
 	)
 	if startDateRaw != "" {
-		startDate, err = time.Parse(time.RFC3339, startDateRaw)
+		startDate, err = time.Parse(timeFormat, startDateRaw)
 		if err != nil {
 			writeError(w, newTimeParsingError(err))
 			return
@@ -137,7 +138,7 @@ func (s Server) FilterByDateRange(w http.ResponseWriter, r *http.Request) {
 	}
 	endDateRaw := query.Get("end_date")
 	if endDateRaw != "" {
-		endDate, err = time.Parse(time.RFC3339, endDateRaw)
+		endDate, err = time.Parse(timeFormat, endDateRaw)
 		if err != nil {
 			writeError(w, newTimeParsingError(err))
 			return
@@ -192,7 +193,11 @@ func calculatePageAndPageSize(query url.Values) (int, int) {
 
 // Retrieves the details of a a single post
 func (s Server) GetPost(w http.ResponseWriter, r *http.Request) {
-	splittedPath := strings.Split(r.URL.RequestURI(), "/")
+	url := r.URL.RequestURI()
+	if len(url) > 0 && string(url[0]) == "/" {
+		url = url[1:]
+	}
+	splittedPath := strings.Split(url, "/")
 	if len(splittedPath) != 2 {
 		writeError(w, newNotFoundError())
 		return
@@ -201,6 +206,10 @@ func (s Server) GetPost(w http.ResponseWriter, r *http.Request) {
 	post, err := s.repo.GetPost(r.Context(), id)
 	if err != nil {
 		writeError(w, newRepositoryError(err))
+		return
+	}
+	if post == nil {
+		writeError(w, newNotFoundError())
 		return
 	}
 	body, err := json.Marshal(post)
