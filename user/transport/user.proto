@@ -8,7 +8,7 @@ service User {
   rpc Create (CreateUserRequest) returns (UserResponse) {}
   rpc Update (UpdateUserRequest) returns (UserResponse) {}
   rpc ChangePassword (ChangePasswordRequest) returns (ChangePasswordResponse) {}
-  rpc CheckUser (CheckUserRequest) returns (CheckUserResponse) {}
+  rpc CheckUser (CheckUserRequest) returns (UserResponse) {}
 }
 
 message UserResponse {
@@ -23,10 +23,7 @@ message UserResponse {
 
 // Empty response for ChangePassword
 message ChangePasswordResponse {
-}
-
-// Empty response for CheckUser
-message CheckUserResponse {
+	bool success = 1;
 }
 
 message CreateUserRequest {
@@ -43,12 +40,15 @@ message UpdateUserRequest {
 	string username         = 2;
 	string firstName        = 3;
 	string lastName         = 4;
+	string id               = 5;
 }
 
 message ChangePasswordRequest {
 	string email            = 1;
 	string username         = 2;
-	string password         = 3;
+	string newPassword      = 3;
+	string repeatedPassword = 4;
+	string oldPassword      = 5;
 }
 
 message CheckUserRequest {

@@ -108,12 +108,22 @@ type UserValidator interface {
 	MatchValidator
 }
 
+// Repository defines the basic usecases for the users' domain
+type Repository interface {
+	ReadUser(ctx context.Context, loginCred string) (*User, error)
+	ChangePassword(ctx context.Context, changePass *ChangePasswordDto) error
+	CreateUser(ctx context.Context, user *CreateUserDto) (*User, error)
+	UpdateUser(ctx context.Context, id string, user *UpdateUserDto) (*User, error)
+}
+
 // Basic repository struct. Store is used for persitance and Validator
 // for field validation
 type UserRepository struct {
 	Store     UserStore
 	Validator UserValidator
 }
+
+var _ Repository = &UserRepository{}
 
 // Reads an user either by her Username or by her Email
 func (r *UserRepository) ReadUser(ctx context.Context,
