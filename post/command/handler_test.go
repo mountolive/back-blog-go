@@ -291,7 +291,7 @@ func TestUpdatePost(t *testing.T) {
 
 func TestStoreIntegration(t *testing.T) {
 	require := require.New(t)
-	store := pgstore.CreateTestContainer(t)
+	store := pgstore.CreateTestContainer(t, "some-container")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	tag1 := "tag1"

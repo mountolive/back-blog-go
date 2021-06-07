@@ -126,13 +126,10 @@ type UserRepository struct {
 var _ Repository = &UserRepository{}
 
 // Reads an user either by her Username or by her Email
-func (r *UserRepository) ReadUser(ctx context.Context,
-	loginCred string) (*User, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context canceled")
-	}
-	defer cancel()
+func (r *UserRepository) ReadUser(
+	ctx context.Context,
+	loginCred string,
+) (*User, error) {
 	byUsernameOrEmail := &ByUsernameOrEmail{
 		Username: loginCred,
 		Email:    loginCred,
@@ -142,16 +139,13 @@ func (r *UserRepository) ReadUser(ctx context.Context,
 
 // Changes password and persists. Returns an error on validation or
 // store's retrieval/persistence
-func (r *UserRepository) ChangePassword(ctx context.Context,
-	changePass *ChangePasswordDto) error {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
+func (r *UserRepository) ChangePassword(
+	ctx context.Context,
+	changePass *ChangePasswordDto,
+) error {
+	err := r.Validator.ValidateEmail(changePass.Email)
 	if err != nil {
-		return r.logErrorAndWrap(err, "Context canceled")
-	}
-	defer cancel()
-	err = r.Validator.ValidateEmail(changePass.Email)
-	if err != nil {
-		return r.logErrorAndWrap(err,
+		return logErrorAndWrap(err,
 			"An error occurred when validating the user's email, ChangePassword")
 	}
 	toCheck := &CheckUserAndPasswordDto{
@@ -161,7 +155,7 @@ func (r *UserRepository) ChangePassword(ctx context.Context,
 	}
 	err = r.Store.CheckIfCorrectPassword(ctx, toCheck)
 	if err != nil {
-		return r.logErrorAndWrap(err, "An error occurred on the UserStore, ChangePassword")
+		return logErrorAndWrap(err, "An error occurred on the UserStore, ChangePassword")
 	}
 	err = r.validatePasswords(changePass.NewPassword, changePass.RepeatedPassword)
 	if err != nil {
@@ -172,28 +166,25 @@ func (r *UserRepository) ChangePassword(ctx context.Context,
 }
 
 // Creates an user. Returns an error on validation
-func (r *UserRepository) CreateUser(ctx context.Context,
-	user *CreateUserDto) (*User, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
+func (r *UserRepository) CreateUser(
+	ctx context.Context,
+	user *CreateUserDto,
+) (*User, error) {
+	err := r.Validator.ValidateEmail(user.Email)
 	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context canceled")
-	}
-	defer cancel()
-	err = r.Validator.ValidateEmail(user.Email)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err,
+		return nil, logErrorAndWrap(err,
 			"An error occurred when validating the user's email, CreateUser")
 	}
 	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if err != nil {
-		return nil, r.logErrorAndWrap(err, "An error occurred on UserStore, CreateUser")
+		return nil, logErrorAndWrap(err, "An error occurred on UserStore, CreateUser")
 	}
 	if found != nil {
 		if found.Username != user.Username && found.Email != user.Email {
-			return nil, r.logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
+			return nil, logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
 				user.Email, user.Username))
 		}
-		return nil, r.logErrorAndWrap(EmailOrUsernameAlreadyInUseError, "Existing user")
+		return nil, logErrorAndWrap(EmailOrUsernameAlreadyInUseError, "Existing user")
 	}
 	err = r.validatePasswords(user.Password, user.RepeatedPassword)
 	if err != nil {
@@ -204,25 +195,23 @@ func (r *UserRepository) CreateUser(ctx context.Context,
 }
 
 // Updates an user. Returns error on retrieval or actual persistence
-func (r *UserRepository) UpdateUser(ctx context.Context, id string,
-	user *UpdateUserDto) (*User, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
+func (r *UserRepository) UpdateUser(
+	ctx context.Context,
+	id string,
+	user *UpdateUserDto,
+) (*User, error) {
+	err := r.Validator.ValidateEmail(user.Email)
 	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context canceled")
-	}
-	defer cancel()
-	err = r.Validator.ValidateEmail(user.Email)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err,
+		return nil, logErrorAndWrap(err,
 			"An error occurred when validating the email, UpdateUser")
 	}
 	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if err != nil {
-		return nil, r.logErrorAndWrap(UserNotFoundError, "An error occurred on the UserStore, UpdateUser")
+		return nil, logErrorAndWrap(UserNotFoundError, "An error occurred on the UserStore, UpdateUser")
 	}
 	if found != nil {
 		if found.Username != user.Username && found.Email != user.Email {
-			return nil, r.logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
+			return nil, logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
 				user.Email, user.Username))
 		}
 	}
@@ -248,25 +237,16 @@ func (r *UserRepository) mapMissingParams(user *UpdateUserDto, found *User) {
 func (r *UserRepository) validatePasswords(password, repeatedPassword string) error {
 	err := r.Validator.ValidatePassword(password)
 	if err != nil {
-		return r.logErrorAndWrap(err, "An error occurred on the validator")
+		return logErrorAndWrap(err, "An error occurred on the validator")
 	}
 	err = r.Validator.ValidatePasswordMatch(password, repeatedPassword)
 	if err != nil {
-		return r.logErrorAndWrap(err, "An error occurred on the validator")
+		return logErrorAndWrap(err, "An error occurred on the validator")
 	}
 	return nil
 }
 
-func (r *UserRepository) logErrorAndWrap(err error, msg string) error {
+// TODO Remove logErrorAndWrap function as it's unnecessary, users
+func logErrorAndWrap(err error, msg string) error {
 	return fmt.Errorf("%s: %w \n", msg, err)
-}
-
-func checkContextAndRecreate(ctx context.Context) (context.Context, context.CancelFunc, error) {
-	select {
-	case <-ctx.Done():
-		return nil, nil, fmt.Errorf("%w: %v", OperationCanceledError, ctx.Err())
-	default:
-		newCtx, cancel := context.WithCancel(ctx)
-		return newCtx, cancel, nil
-	}
 }

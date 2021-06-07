@@ -179,7 +179,7 @@ func (p *PgStore) Filter(ctx context.Context,
 }
 
 // CreateTestContainer creates a DB container for integration tests
-func CreateTestContainer(t *testing.T) *PgStore {
+func CreateTestContainer(t *testing.T, containerName string) *PgStore {
 	err := godotenv.Load("../.env.test")
 	if err != nil {
 		t.Log("dotenv file not found")
@@ -191,9 +191,8 @@ func CreateTestContainer(t *testing.T) *PgStore {
 
 	testPass := os.Getenv("POSTGRES_TEST_PASSWORD")
 	testUser := os.Getenv("POSTGRES_TEST_USER")
-	hostPort := "5433"
+	hostPort := "5434"
 	containerPort := "5432"
-	containerName := "blog_post_test"
 
 	runOptions := &dockertest.RunOptions{
 		Repository: "postgres",

@@ -15,7 +15,6 @@ type createPostTestCase struct {
 	Dto         *CreatePostDto
 	ExpErr      error
 	Repo        *PostRepository
-	CtxCancel   bool
 }
 
 type updatePostTestCase struct {
@@ -23,7 +22,6 @@ type updatePostTestCase struct {
 	Description string
 	Dto         *UpdatePostDto
 	ExpErr      error
-	CtxCancel   bool
 	Repo        *PostRepository
 }
 
@@ -32,14 +30,12 @@ type filterTestCase struct {
 	Description string
 	Dto         *GeneralFilter
 	ExpErr      error
-	CtxCancel   bool
 }
 
 type getOneTestCase struct {
 	Name        string
 	Description string
 	Errored     bool
-	CtxCancel   bool
 	Repo        *PostRepository
 }
 
@@ -86,23 +82,11 @@ func TestPostRepository(t *testing.T) {
 					Checker:   &mockErrorChecker{},
 				},
 			},
-			{
-				Name:        "Context Canceled",
-				Description: "It should return an OperationCanceledError",
-				Dto:         testDto,
-				ExpErr:      OperationCanceledError,
-				CtxCancel:   true,
-				Repo:        repo,
-			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.CtxCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				post, err := tc.Repo.CreatePost(ctx, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, post == nil, "Returned PostDto should be nil")
@@ -121,13 +105,6 @@ func TestPostRepository(t *testing.T) {
 
 	t.Run("GetPost", func(t *testing.T) {
 		testCases := []getOneTestCase{
-			{
-				Name:        "Context Canceled",
-				Description: "It should return an OperationCanceledError",
-				CtxCancel:   true,
-				Errored:     true,
-				Repo:        repo,
-			},
 			{
 				Name:        "Store read error",
 				Description: "It should return wrap the error returned by the store",
@@ -158,11 +135,7 @@ func TestPostRepository(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.CtxCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				post, err := tc.Repo.GetPost(ctx, "in-bloom")
 				if tc.Errored {
 					require.True(t, post == nil, "Returned PostDto should be nil")
@@ -191,14 +164,6 @@ func TestPostRepository(t *testing.T) {
 				Repo:        repo,
 			},
 			{
-				Name:        "Context Canceled",
-				Description: "It should return an OperationCanceledError",
-				Dto:         testDto,
-				ExpErr:      OperationCanceledError,
-				CtxCancel:   true,
-				Repo:        repo,
-			},
-			{
 				Name:        "Missing Id",
 				Description: "It should return a MissingIdError",
 				Dto: &UpdatePostDto{
@@ -213,11 +178,7 @@ func TestPostRepository(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.CtxCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				post, err := tc.Repo.UpdatePost(ctx, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, post == nil, "Returned PostDto should be nil")
@@ -240,22 +201,11 @@ func TestPostRepository(t *testing.T) {
 				Description: "It should return a []*Post and no error",
 				Dto:         testDto,
 			},
-			{
-				Name:        "Context Canceled",
-				Description: "It should return an OperationCanceledError",
-				Dto:         testDto,
-				ExpErr:      OperationCanceledError,
-				CtxCancel:   true,
-			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.CtxCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				var posts []*Post
 				var err error
 				if tc.Dto.Tag == "" {
@@ -271,8 +221,7 @@ func TestPostRepository(t *testing.T) {
 					require.True(t, posts != nil, "[]*Post returned nil when it shouldn't")
 					require.True(t, err == nil, "Err should be nil")
 					// As the mock returns a single value
-					length := len(posts)
-					require.True(t, length == 1, genericError, length, 1)
+					require.Len(t, posts, 1, genericError, len(posts), 1)
 					post := posts[0]
 					require.True(t, post.Creator == "test", genericError, post.Creator, "test")
 					require.True(t, post.Content == "test", genericError, post.Content, "test")

@@ -104,19 +104,16 @@ var (
 )
 
 // Persists and return a PostDto with the data passed
-func (r *PostRepository) CreatePost(ctx context.Context,
-	post *CreatePostDto) (*Post, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context error")
-	}
-	defer cancel()
+func (r *PostRepository) CreatePost(
+	ctx context.Context,
+	post *CreatePostDto,
+) (*Post, error) {
 	exists, err := r.Checker.CheckExistence(ctx, post.Creator)
 	if err != nil {
-		return nil, r.logErrorAndWrap(UserCheckError, err.Error())
+		return nil, logErrorAndWrap(UserCheckError, err.Error())
 	}
 	if !exists {
-		return nil, r.logErrorAndWrap(UserNotFoundError,
+		return nil, logErrorAndWrap(UserNotFoundError,
 			fmt.Sprintf("User %s not found", post.Creator))
 	}
 	post.Content = r.Sanitizer.SanitizeContent(post.Content)
@@ -125,15 +122,12 @@ func (r *PostRepository) CreatePost(ctx context.Context,
 
 // Updates and return a PostDto with the data passed,
 //   otherwise returns no-nil error
-func (r *PostRepository) UpdatePost(ctx context.Context,
-	updated *UpdatePostDto) (*Post, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context error")
-	}
-	defer cancel()
+func (r *PostRepository) UpdatePost(
+	ctx context.Context,
+	updated *UpdatePostDto,
+) (*Post, error) {
 	if updated.Id == "" {
-		return nil, r.logErrorAndWrap(MissingIdError, "UpdatePost")
+		return nil, logErrorAndWrap(MissingIdError, "UpdatePost")
 	}
 	updated.Content = r.Sanitizer.SanitizeContent(updated.Content)
 	return r.Store.Update(ctx, updated)
@@ -141,60 +135,40 @@ func (r *PostRepository) UpdatePost(ctx context.Context,
 
 // Retrieves a post by its identifier (id)
 func (r *PostRepository) GetPost(ctx context.Context, id string) (*Post, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context error")
-	}
-	defer cancel()
 	post, err := r.Store.ReadOne(ctx, id)
 	if err != nil {
-		return nil, r.logErrorAndWrap(err, "GetPost error")
+		return nil, logErrorAndWrap(err, "GetPost error")
 	}
 	if post.Id == "" {
-		return nil, r.logErrorAndWrap(PostNotFoundError, fmt.Sprintf("ID: %s.", id))
+		return nil, logErrorAndWrap(PostNotFoundError, fmt.Sprintf("ID: %s.", id))
 	}
 	return post, nil
 }
 
 // Filters persisted posts by tag(s)
-func (r *PostRepository) FilterByTag(ctx context.Context,
-	filter *ByTagDto, page, pageSize int) ([]*Post, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context error")
-	}
-	defer cancel()
+func (r *PostRepository) FilterByTag(
+	ctx context.Context,
+	filter *ByTagDto,
+	page, pageSize int,
+) ([]*Post, error) {
 	generalFilter := &GeneralFilter{Page: page, PageSize: pageSize}
 	generalFilter.Tag = filter.Tag
 	return r.Store.Filter(ctx, generalFilter)
 }
 
 // Filters persisted posts by date range
-func (r *PostRepository) FilterByDateRange(ctx context.Context,
-	filter *ByDateRangeDto, page, pageSize int) ([]*Post, error) {
-	ctx, cancel, err := checkContextAndRecreate(ctx)
-	if err != nil {
-		return nil, r.logErrorAndWrap(err, "Context error")
-	}
-	defer cancel()
+func (r *PostRepository) FilterByDateRange(
+	ctx context.Context,
+	filter *ByDateRangeDto,
+	page, pageSize int,
+) ([]*Post, error) {
 	generalFilter := &GeneralFilter{Page: page, PageSize: pageSize}
 	generalFilter.From = filter.From
 	generalFilter.To = filter.To
 	return r.Store.Filter(ctx, generalFilter)
 }
 
-func (r *PostRepository) logErrorAndWrap(err error, msg string) error {
+// TODO Remove logErrorAndWrap function as it's unnecessary, posts
+func logErrorAndWrap(err error, msg string) error {
 	return fmt.Errorf("%s: %w \n", msg, err)
-}
-
-// TODO Remove context recreation on Post's repository, unnecessary and error prone
-func checkContextAndRecreate(
-	ctx context.Context) (context.Context, context.CancelFunc, error) {
-	select {
-	case <-ctx.Done():
-		return nil, nil, fmt.Errorf("%w: %v", OperationCanceledError, ctx.Err())
-	default:
-		newCtx, cancel := context.WithCancel(ctx)
-		return newCtx, cancel, nil
-	}
 }

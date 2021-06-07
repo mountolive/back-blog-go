@@ -9,38 +9,34 @@ import (
 )
 
 type changePasswordCase struct {
-	Name          string
-	Description   string
-	Repo          *UserRepository
-	Dto           *ChangePasswordDto
-	ContextCancel bool
-	ExpErr        error
+	Name        string
+	Description string
+	Repo        *UserRepository
+	Dto         *ChangePasswordDto
+	ExpErr      error
 }
 
 type createUserCase struct {
-	Name          string
-	Description   string
-	Dto           *CreateUserDto
-	Repo          *UserRepository
-	ContextCancel bool
-	ExpErr        error
+	Name        string
+	Description string
+	Dto         *CreateUserDto
+	Repo        *UserRepository
+	ExpErr      error
 }
 
 type updateUserCase struct {
-	Name          string
-	Description   string
-	Dto           *UpdateUserDto
-	Repo          *UserRepository
-	ContextCancel bool
-	ExpErr        error
+	Name        string
+	Description string
+	Dto         *UpdateUserDto
+	Repo        *UserRepository
+	ExpErr      error
 }
 
 type readUserCase struct {
-	Name          string
-	Description   string
-	Login         string
-	ContextCancel bool
-	ExpErr        error
+	Name        string
+	Description string
+	Login       string
+	ExpErr      error
 }
 
 func TestUserRepository(t *testing.T) {
@@ -128,17 +124,6 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: InvalidPasswordError,
 			},
 			{
-				Name:        "Context canceled",
-				Description: "It should fail with a OperationCanceledError",
-				Repo: &UserRepository{
-					Validator: trueValidator,
-					Store:     happyPathStore,
-				},
-				Dto:           correctChangePassword,
-				ContextCancel: true,
-				ExpErr:        OperationCanceledError,
-			},
-			{
 				Name:        "Valid password",
 				Description: "It should change the password properly",
 				Repo: &UserRepository{
@@ -151,11 +136,7 @@ func TestUserRepository(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.ContextCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				err := tc.Repo.ChangePassword(ctx, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, errors.Is(err, tc.ExpErr), genericErrMsg, err, tc.ExpErr)
@@ -230,17 +211,6 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: InvalidPasswordError,
 			},
 			{
-				Name:        "Context canceled",
-				Description: "It should return a proper *UserDto",
-				Repo: &UserRepository{
-					Validator: &trueValidator{},
-					Store:     happyPathStore,
-				},
-				ContextCancel: true,
-				Dto:           regularDto,
-				ExpErr:        OperationCanceledError,
-			},
-			{
 				Name:        "Not matching passwords",
 				Description: "It should return a PasswordDontMatchError",
 				Repo: &UserRepository{
@@ -263,11 +233,7 @@ func TestUserRepository(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.ContextCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				dto, err := tc.Repo.CreateUser(ctx, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, errors.Is(err, tc.ExpErr), genericErrMsg, err, tc.ExpErr)
@@ -290,13 +256,6 @@ func TestUserRepository(t *testing.T) {
 		validator := &trueValidator{}
 		testCases := []readUserCase{
 			{
-				Name:          "Context canceled",
-				Description:   "It should fail if the passed context is canceled",
-				Login:         testLogin,
-				ContextCancel: true,
-				ExpErr:        OperationCanceledError,
-			},
-			{
 				Name:        "User read success",
 				Description: "It should return the associated user",
 				Login:       testLogin,
@@ -309,11 +268,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     &happyPathUserStoreMock{tc.Login, tc.Login},
 				}
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.ContextCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				user, err := repo.ReadUser(ctx, tc.Login)
 				if tc.ExpErr != nil {
 					require.True(t, errors.Is(err, tc.ExpErr),
@@ -355,17 +310,6 @@ func TestUserRepository(t *testing.T) {
 				ExpErr: MalformedEmailError,
 			},
 			{
-				Name:        "Context canceled",
-				Description: "It should fail fast because of the cancelled context",
-				Repo: &UserRepository{
-					Validator: &trueValidator{},
-					Store:     happyPathStore,
-				},
-				ContextCancel: true,
-				Dto:           regularDto,
-				ExpErr:        OperationCanceledError,
-			},
-			{
 				Name:        "Correct update",
 				Description: "It should return a proper *UserDto",
 				Repo: &UserRepository{
@@ -378,11 +322,7 @@ func TestUserRepository(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
 				t.Log(tc.Description)
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-				if tc.ContextCancel {
-					cancel()
-				}
+				ctx := context.Background()
 				dto, err := tc.Repo.UpdateUser(ctx, testId, tc.Dto)
 				if tc.ExpErr != nil {
 					require.True(t, errors.Is(err, tc.ExpErr), tc.Description)
