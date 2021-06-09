@@ -9,3 +9,12 @@ Not intended to be a simple and elegant solution... I'm just using this as an ex
 ## TODO
 
 -  A huge one: explain the architecture...
+
+## CARGO HEADS-UP
+
+If using ssh `insteadOf` for global `.gitconfig`, make sure to:
+
+```bash
+eval `ssh-agent -s`
+ssh-add
+```
