@@ -111,6 +111,8 @@ func (p *PgStore) Create(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
+
+	// TODO Post's read by Createor in Create's return is an open door for inconsistent results (write skew)
 	return p.getNewestByCreator(ctx, create.Creator), nil
 }
 
@@ -135,6 +137,7 @@ func (p *PgStore) Update(ctx context.Context,
 	if err != nil {
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
+	// TODO Post's ReadOne in Update's return is an open door for inconsistent results (write skew)
 	return p.ReadOne(ctx, update.Id)
 }
 

@@ -115,6 +115,7 @@ func (p *PgStore) Create(ctx context.Context,
 	}
 	tx.Commit(ctx)
 
+	// TODO User's read by Email in Create's return is an open door for inconsistent results (write skew)
 	return p.userByEmail(ctx, data.Email)
 }
 
@@ -138,7 +139,7 @@ func (p *PgStore) Update(ctx context.Context, id string,
 		return nil, err
 	}
 	tx.Commit(ctx)
-
+	// TODO User's read by Id in Update's return is an open door for inconsistent results (write skew)
 	return p.userById(ctx, id)
 }
 
