@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 rand = "0.8.x"
+jwt = "0.14.x"
+sha2 = "0.9.x"
+hmac = "0.11.x"
