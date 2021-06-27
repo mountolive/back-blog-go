@@ -1,4 +1,4 @@
 mod auth;
-mod jwt;
+mod store;
 
 fn main() {}

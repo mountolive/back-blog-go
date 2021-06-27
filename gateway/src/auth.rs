@@ -17,8 +17,23 @@ impl fmt::Display for EvictionCheckError {
     }
 }
 
-pub trait Token {
-    fn is_evicted(&self) -> Result<bool, EvictionCheckError>;
+pub struct JWTToken {
+    pub value: String,
+    // TODO Add ttl to JWTToken
+}
+
+impl JWTToken {
+    pub fn generate(username: &String, ttl: i32) -> JWTToken {
+        // TODO Implement
+        JWTToken {
+            value: String::from("TODO"),
+        }
+    }
+
+    fn is_evicted(&self) -> Result<bool, EvictionCheckError> {
+        // TODO Implement
+        Ok(false)
+    }
 }
 
 #[derive(Debug)]
@@ -56,8 +71,8 @@ impl fmt::Display for AuthenticationError {
 }
 
 pub trait TokenStore {
-    fn retrieve(&self, key: &String) -> Result<Box<dyn Token>, TokenStoreError>;
-    fn save(&self, key: &String, token: &dyn Token) -> Result<(), TokenStoreError>;
+    fn retrieve(&self, key: &String) -> Result<JWTToken, TokenStoreError>;
+    fn save(&self, key: &String, token: &JWTToken) -> Result<(), TokenStoreError>;
 }
 
 pub trait Authenticator {
@@ -71,27 +86,36 @@ pub trait Authenticator {
 pub struct AuthService<T: Authenticator, V: TokenStore> {
     authenticator: T,
     store: V,
+    token_ttl: i32,
 }
 
 impl<T: Authenticator, V: TokenStore> AuthService<T, V> {
-    pub fn new(authenticator: T, store: V) -> AuthService<T, V> {
+    pub fn new(authenticator: T, store: V, token_ttl: i32) -> AuthService<T, V> {
         AuthService {
             authenticator,
             store,
+            token_ttl,
         }
     }
 
-    pub fn login<S: Token>(&self, usr: String, pass: String) -> Result<S, AuthenticationError> {
+    pub fn login(&self, usr: String, pass: String) -> Result<JWTToken, AuthenticationError> {
         match self.authenticator.authenticate(&usr, &pass) {
-            Ok(token) => match self.store.save(usr, Box::new(token)) {
-                Ok(correct) => {
-                    if correct {
-                        return Ok(token);
+            Ok(logged_in) => {
+                if !logged_in {
+                    return Err(AuthenticationError {
+                        message: String::from("invalid credentials"),
+                    });
+                }
+                let token = JWTToken::generate(&usr, self.token_ttl);
+                match self.store.save(&usr, &token) {
+                    Ok(_) => return Ok(token),
+                    Err(e) => {
+                        return Err(AuthenticationError {
+                            message: String::from("implement"),
+                        })
                     }
-                    return Err(AuthenticationError { message: String::from("token unable to be saved") }
-                },
-                Err(e) => return Err(AuthenticationError { message: e.message }),
-            },
+                }
+            }
             Err(e) => return Err(e),
         };
     }
