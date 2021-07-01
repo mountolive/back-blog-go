@@ -34,6 +34,7 @@ pub struct JWTToken {
 const WRONG_NOW: &str = "unable to determine now's timestamp";
 const USER_KEY: &str = "user";
 
+// TODO make JWTToken implement Serialize
 impl<'a> JWTToken {
     // Creates a new JWT token from the username passed and with the passed TTL (in seconds)
     pub fn generate(username: &str, ttl: u64, key: &Hmac<Sha256>) -> Result<JWTToken, TokenError> {
@@ -171,7 +172,7 @@ impl<'a> AuthService<'a> {
     }
 
     // Authenticates user against authentication service
-    // TODO Figure a way to implement login. Can't partially borrow a saved token
+    // TODO Make TokenStore store a String (serialized) representation of the token
     // pub fn login(&mut self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
     //     match self.authenticator.authenticate(usr, pass) {
     //         Ok(logged_in) => {
