@@ -34,34 +34,43 @@ pub struct JWTToken {
 const WRONG_NOW: &str = "unable to determine now's timestamp";
 const USER_KEY: &str = "user";
 
-impl JWTToken {
+impl<'a> JWTToken {
     // Creates a new JWT token from the username passed and with the passed TTL (in seconds)
-    pub fn generate(
-        username: &String,
-        ttl: u64,
-        key: &Hmac<Sha256>,
-    ) -> Result<JWTToken, TokenError> {
+    pub fn generate(username: &str, ttl: u64, key: &Hmac<Sha256>) -> Result<JWTToken, TokenError> {
         let mut claims = BTreeMap::new();
         claims.insert(USER_KEY, username);
-        let value: String;
         match claims.sign_with_key(key) {
-            Ok(token_val) => value = token_val,
+            Ok(token_value) => match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                Ok(now) => Ok(JWTToken {
+                    value: token_value,
+                    until: now + Duration::from_secs(ttl),
+                }),
+                Err(_) => {
+                    return Err(TokenError {
+                        message: String::from(WRONG_NOW),
+                    })
+                }
+            },
             Err(_) => {
                 return Err(TokenError {
                     message: String::from("signing token"),
                 })
             }
         }
-        let until: Duration;
-        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(now) => until = now + Duration::from_secs(ttl),
-            Err(_) => {
-                return Err(TokenError {
-                    message: String::from(WRONG_NOW),
-                })
+    }
+
+    // Explodes and a gets underlying username from JWT token
+    fn get_username(token_value: &str, key: &Hmac<Sha256>) -> Result<String, TokenError> {
+        let token: Token<Header, BTreeMap<String, String>, _>;
+        match VerifyWithKey::verify_with_key(token_value, key) {
+            Ok(val) => {
+                token = val;
+                Ok(token.claims()[USER_KEY].to_string())
             }
+            Err(_) => Err(TokenError {
+                message: String::from("unable to retrieve username"),
+            }),
         }
-        Ok(JWTToken { value, until })
     }
 
     // Checks whether a token is already evicted
@@ -70,20 +79,6 @@ impl JWTToken {
             Ok(now) => Ok(now > self.until),
             Err(_) => Err(TokenError {
                 message: String::from(WRONG_NOW),
-            }),
-        }
-    }
-
-    // Explodes and a gets underlying username from JWT token
-    fn get_username(&self, key: &Hmac<Sha256>) -> Result<String, TokenError> {
-        let token: Token<Header, BTreeMap<String, String>, _>;
-        match VerifyWithKey::verify_with_key(&self.value[..], key) {
-            Ok(val) => {
-                token = val;
-                Ok(String::from(&token.claims()[USER_KEY]))
-            }
-            Err(_) => Err(TokenError {
-                message: String::from("unable to retrieve username"),
             }),
         }
     }
@@ -132,36 +127,32 @@ impl fmt::Display for AuthenticationError {
 }
 
 // Describes the basic contract expected by a Token's store
-pub trait TokenStore {
-    fn retrieve(&self, key: &String) -> Result<JWTToken, TokenStoreError>;
-    fn save(&self, key: &String, token: &JWTToken) -> Result<(), TokenStoreError>;
+pub trait TokenStore<'a> {
+    fn retrieve(&'a self, key: &str) -> Result<&'a JWTToken, TokenStoreError>;
+    fn save(&mut self, key: &str, token: JWTToken) -> Result<(), TokenStoreError>;
 }
 
 // Describes the basic contract expected by an authenticator's client
 pub trait Authenticator {
-    fn authenticate(
-        &self,
-        username: &String,
-        password: &String,
-    ) -> Result<bool, AuthenticationError>;
+    fn authenticate(&self, username: &str, password: &str) -> Result<bool, AuthenticationError>;
 }
 
 // Handles login and authorization by means of an Authenticator and a TokenStore
-pub struct AuthService<T: Authenticator, V: TokenStore> {
-    authenticator: T,
-    store: V,
+pub struct AuthService<'a> {
+    authenticator: Box<dyn Authenticator>,
+    store: Box<dyn TokenStore<'a>>,
     token_ttl: u64,
     token_key: Hmac<Sha256>,
 }
 
-impl<T: Authenticator, V: TokenStore> AuthService<T, V> {
+impl<'a> AuthService<'a> {
     // Creates a new AuthService
     pub fn new(
-        authenticator: T,
-        store: V,
+        authenticator: Box<dyn Authenticator>,
+        store: Box<dyn TokenStore<'a>>,
         token_ttl: u64,
-        secret: String,
-    ) -> Result<AuthService<T, V>, AuthenticationError> {
+        secret: &str,
+    ) -> Result<AuthService<'a>, AuthenticationError> {
         let token_key: Hmac<Sha256>;
         match Hmac::new_from_slice(secret.as_bytes()) {
             Ok(key) => token_key = key,
@@ -180,45 +171,40 @@ impl<T: Authenticator, V: TokenStore> AuthService<T, V> {
     }
 
     // Authenticates user against authentication service
-    pub fn login(&self, usr: String, pass: String) -> Result<JWTToken, AuthenticationError> {
-        match self.authenticator.authenticate(&usr, &pass) {
-            Ok(logged_in) => {
-                if !logged_in {
-                    return Err(AuthenticationError {
-                        message: String::from("invalid credentials"),
-                    });
-                }
-                let token: JWTToken;
-                match JWTToken::generate(&usr, self.token_ttl, &self.token_key) {
-                    Ok(t) => token = t,
-                    Err(e) => return Err(AuthenticationError { message: e.message }),
-                }
-                match self.store.save(&usr, &token) {
-                    Ok(_) => return Ok(token),
-                    Err(e) => return Err(AuthenticationError { message: e.message }),
-                }
-            }
-            Err(e) => return Err(e),
-        };
-    }
+    // TODO Figure a way to implement login. Can't partially borrow a saved token
+    // pub fn login(&mut self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
+    //     match self.authenticator.authenticate(usr, pass) {
+    //         Ok(logged_in) => {
+    //             if !logged_in {
+    //                 return Err(AuthenticationError {
+    //                     message: String::from("invalid credentials"),
+    //                 });
+    //             }
+    //             let token: JWTToken;
+    //             match JWTToken::generate(usr, self.token_ttl, &self.token_key) {
+    //                 Ok(t) => token = t,
+    //                 Err(e) => return Err(AuthenticationError { message: e.message }),
+    //             }
+    //             let result = token.value;
+    //             match self.store.save(&usr, token) {
+    //                 Ok(_) => return Ok(result),
+    //                 Err(e) => return Err(AuthenticationError { message: e.message }),
+    //             }
+    //         }
+    //         Err(e) => return Err(e),
+    //     };
+    // }
 
     // Checks whether the received token is still authorized
-    pub fn authorize(&self, token: &JWTToken) -> Result<bool, AuthenticationError> {
-        let complete_token: JWTToken;
-        match token.get_username(&self.token_key) {
-            Ok(usr) => match self.store.retrieve(&usr) {
-                Ok(saved_token) => {
-                    if saved_token != *token {
-                        return Ok(false);
-                    }
-                    complete_token = saved_token;
-                }
+    pub fn authorize(&'a self, token_value: &str) -> Result<bool, AuthenticationError> {
+        match JWTToken::get_username(token_value, &self.token_key) {
+            Ok(usr) => match self.store.retrieve(&usr[..]) {
+                Ok(saved_token) => match saved_token.is_evicted() {
+                    Ok(evicted) => Ok(evicted),
+                    Err(e) => return Err(AuthenticationError { message: e.message }),
+                },
                 Err(e) => return Err(AuthenticationError { message: e.message }),
             },
-            Err(e) => return Err(AuthenticationError { message: e.message }),
-        }
-        match complete_token.is_evicted() {
-            Ok(evicted) => Ok(evicted),
             Err(e) => return Err(AuthenticationError { message: e.message }),
         }
     }

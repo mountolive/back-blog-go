@@ -1,26 +1,39 @@
+//! Implementation of the corresponding TokenStore
+
 use crate::auth::{JWTToken, TokenStore, TokenStoreError};
 
+// Error placeholder for any error occurred inside a Storage's operation
 pub trait StorageError: std::error::Error {}
 
-pub trait Storage {
-    fn get(&self, key: &String) -> Result<String, Box<dyn StorageError>>;
-    fn set(&self, key: &String, token: &JWTToken) -> Result<(), Box<dyn StorageError>>;
+// Represents the basic contract for a token's storage
+pub trait Storage<'a> {
+    fn get(&'a self, key: &str) -> Result<&'a JWTToken, Box<dyn StorageError>>;
+    fn set(&mut self, key: &str, token: JWTToken) -> Result<(), Box<dyn StorageError>>;
 }
 
-pub struct JWTStore<T: Storage> {
-    store: T,
+// Wrapper for any tokens' storage engine
+pub struct JWTStore<'a> {
+    storage: dyn Storage<'a>,
 }
 
-impl<T: Storage> TokenStore for JWTStore<T> {
-    fn retrieve(&self, key: &String) -> Result<JWTToken, TokenStoreError> {
-        // TODO Implement
-        Err(TokenStoreError {
-            message: String::from("implement"),
-        })
+impl<'a> TokenStore<'a> for JWTStore<'a> {
+    // Retrieves a token from the underlying storage
+    fn retrieve(&'a self, key: &str) -> Result<&'a JWTToken, TokenStoreError> {
+        match self.storage.get(key) {
+            Ok(token) => Ok(token),
+            Err(e) => Err(TokenStoreError {
+                message: e.to_string(),
+            }),
+        }
     }
 
-    fn save(&self, key: &String, token: &JWTToken) -> Result<(), TokenStoreError> {
-        // TODO Implement
-        Ok(())
+    // Saves a token in the underlying storage
+    fn save(&mut self, key: &str, token: JWTToken) -> Result<(), TokenStoreError> {
+        match self.storage.set(key, token) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(TokenStoreError {
+                message: e.to_string(),
+            }),
+        }
     }
 }
