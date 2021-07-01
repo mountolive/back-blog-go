@@ -2,6 +2,8 @@
 
 use hmac::{Hmac, NewMac};
 use jwt::{Header, SignWithKey, Token, VerifyWithKey};
+use serde::{Deserialize, Serialize};
+use serde_json;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -26,6 +28,7 @@ impl fmt::Display for TokenError {
 }
 
 // Basic implementation of a JWT token with TTL
+#[derive(Serialize, Deserialize)]
 pub struct JWTToken {
     pub value: String,
     until: Duration,
@@ -34,7 +37,6 @@ pub struct JWTToken {
 const WRONG_NOW: &str = "unable to determine now's timestamp";
 const USER_KEY: &str = "user";
 
-// TODO make JWTToken implement Serialize
 impl<'a> JWTToken {
     // Creates a new JWT token from the username passed and with the passed TTL (in seconds)
     pub fn generate(username: &str, ttl: u64, key: &Hmac<Sha256>) -> Result<JWTToken, TokenError> {
@@ -128,9 +130,9 @@ impl fmt::Display for AuthenticationError {
 }
 
 // Describes the basic contract expected by a Token's store
-pub trait TokenStore<'a> {
-    fn retrieve(&'a self, key: &str) -> Result<&'a JWTToken, TokenStoreError>;
-    fn save(&mut self, key: &str, token: JWTToken) -> Result<(), TokenStoreError>;
+pub trait TokenStore {
+    fn retrieve(&self, key: &str) -> Result<JWTToken, TokenStoreError>;
+    fn save(&mut self, key: &str, ser_token: &str) -> Result<(), TokenStoreError>;
 }
 
 // Describes the basic contract expected by an authenticator's client
@@ -139,21 +141,21 @@ pub trait Authenticator {
 }
 
 // Handles login and authorization by means of an Authenticator and a TokenStore
-pub struct AuthService<'a> {
+pub struct AuthService {
     authenticator: Box<dyn Authenticator>,
-    store: Box<dyn TokenStore<'a>>,
+    store: Box<dyn TokenStore>,
     token_ttl: u64,
     token_key: Hmac<Sha256>,
 }
 
-impl<'a> AuthService<'a> {
+impl AuthService {
     // Creates a new AuthService
     pub fn new(
         authenticator: Box<dyn Authenticator>,
-        store: Box<dyn TokenStore<'a>>,
+        store: Box<dyn TokenStore>,
         token_ttl: u64,
         secret: &str,
-    ) -> Result<AuthService<'a>, AuthenticationError> {
+    ) -> Result<AuthService, AuthenticationError> {
         let token_key: Hmac<Sha256>;
         match Hmac::new_from_slice(secret.as_bytes()) {
             Ok(key) => token_key = key,
@@ -171,33 +173,33 @@ impl<'a> AuthService<'a> {
         })
     }
 
-    // Authenticates user against authentication service
-    // TODO Make TokenStore store a String (serialized) representation of the token
-    // pub fn login(&mut self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
-    //     match self.authenticator.authenticate(usr, pass) {
-    //         Ok(logged_in) => {
-    //             if !logged_in {
-    //                 return Err(AuthenticationError {
-    //                     message: String::from("invalid credentials"),
-    //                 });
-    //             }
-    //             let token: JWTToken;
-    //             match JWTToken::generate(usr, self.token_ttl, &self.token_key) {
-    //                 Ok(t) => token = t,
-    //                 Err(e) => return Err(AuthenticationError { message: e.message }),
-    //             }
-    //             let result = token.value;
-    //             match self.store.save(&usr, token) {
-    //                 Ok(_) => return Ok(result),
-    //                 Err(e) => return Err(AuthenticationError { message: e.message }),
-    //             }
-    //         }
-    //         Err(e) => return Err(e),
-    //     };
-    // }
+    // Authenticates user against authentication service and returns a JWT token value
+    pub fn login(&mut self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
+        match self.authenticator.authenticate(usr, pass) {
+            Ok(logged_in) => {
+                if !logged_in {
+                    return Err(AuthenticationError {
+                        message: String::from("invalid credentials"),
+                    });
+                }
+                let token: JWTToken;
+                match JWTToken::generate(usr, self.token_ttl, &self.token_key) {
+                    Ok(t) => token = t,
+                    Err(e) => return Err(AuthenticationError { message: e.message }),
+                }
+                // TODO Handle serializing Result for login's token
+                let serialized_token = serde_json::to_string(&token).unwrap();
+                match self.store.save(&usr, &serialized_token[..]) {
+                    Ok(_) => return Ok(token.value),
+                    Err(e) => return Err(AuthenticationError { message: e.message }),
+                }
+            }
+            Err(e) => return Err(e),
+        };
+    }
 
     // Checks whether the received token is still authorized
-    pub fn authorize(&'a self, token_value: &str) -> Result<bool, AuthenticationError> {
+    pub fn authorize(&self, token_value: &str) -> Result<bool, AuthenticationError> {
         match JWTToken::get_username(token_value, &self.token_key) {
             Ok(usr) => match self.store.retrieve(&usr[..]) {
                 Ok(saved_token) => match saved_token.is_evicted() {

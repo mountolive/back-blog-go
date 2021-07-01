@@ -58,6 +58,8 @@ dependencies = [
  "hmac",
  "jwt",
  "rand",
+ "serde",
+ "serde_json",
  "sha2",
 ]
 
