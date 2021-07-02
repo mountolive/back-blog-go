@@ -37,7 +37,7 @@ pub struct JWTToken {
 const WRONG_NOW: &str = "unable to determine now's timestamp";
 const USER_KEY: &str = "user";
 
-impl<'a> JWTToken {
+impl JWTToken {
     // Creates a new JWT token from the username passed and with the passed TTL (in seconds)
     pub fn generate(username: &str, ttl: u64, key: &Hmac<Sha256>) -> Result<JWTToken, TokenError> {
         let mut claims = BTreeMap::new();
