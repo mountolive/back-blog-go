@@ -217,6 +217,9 @@ impl AuthService {
 mod tests {
     use super::*;
 
+    const RETRIEVE_ERR: &str = "retrieve err";
+    const SAVE_ERR: &str = "save err";
+
     struct MockTokenStore {
         errored: bool,
     }
@@ -225,7 +228,7 @@ mod tests {
         fn retrieve(&self, _: &str) -> Result<JWTToken, TokenStoreError> {
             if self.errored {
                 return Err(TokenStoreError {
-                    message: String::from("retrieve err"),
+                    message: String::from(RETRIEVE_ERR),
                 });
             }
             Ok(JWTToken {
@@ -237,7 +240,7 @@ mod tests {
         fn save(&self, _: &str, _: &str) -> Result<(), TokenStoreError> {
             if self.errored {
                 return Err(TokenStoreError {
-                    message: String::from("save err"),
+                    message: String::from(SAVE_ERR),
                 });
             }
             Ok(())
@@ -331,6 +334,13 @@ mod tests {
         }
     }
 
+    const USER: &str = "noice";
+    const PASS: &str = "noicepassword";
+    const SECRET: &str = "un secreto";
+    // Token using "noice" and "noicepassword" as login params and "un secreto" as secret
+    const TEST_TOKEN: &str =
+        "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoibm9pY2UifQ.Rse8j2VNi1HmbD3Z-JAMB37UWPCD5GNV3ndnAxS1JYM";
+
     #[test]
     fn test_correct_login() {
         match AuthService::new(
@@ -340,11 +350,11 @@ mod tests {
             }),
             Box::new(MockTokenStore { errored: false }),
             1001,
-            "I don't know what I'm doing -> this is my secret",
+            SECRET,
         ) {
             Ok(service) => {
-                match service.login("noice", "noicepassword") {
-                    Ok(token) => assert!(!token.is_empty(), "should return a non empty token"),
+                match service.login(USER, PASS) {
+                    Ok(token) => assert_eq!(token, TEST_TOKEN),
                     Err(e) => {
                         assert!(false, "shouldn't return an Err result when correct login")
                     }
@@ -358,19 +368,15 @@ mod tests {
         }
     }
 
-    fn authorize_test(
-        err_store: bool,
-        err_authenticator: bool,
-        test_case: fn(service: AuthService),
-    ) {
+    fn authorize_test(err_store: bool, test_case: fn(service: AuthService)) {
         match AuthService::new(
             Box::new(MockAuthenticator {
                 errored: false,
                 correct: true,
             }),
-            Box::new(MockTokenStore { errored: false }),
+            Box::new(MockTokenStore { errored: err_store }),
             1001,
-            "some super secret",
+            SECRET,
         ) {
             Ok(service) => test_case(service),
             Err(e) => assert!(
@@ -379,5 +385,23 @@ mod tests {
                 e.message
             ),
         }
+    }
+
+    #[test]
+    fn test_authorize_store_error() {
+        let authorize_store_error = |service: AuthService| match service.authorize(TEST_TOKEN) {
+            Ok(_) => assert!(false, "shouldn't return Ok"),
+            Err(e) => assert_eq!(e.message, String::from(RETRIEVE_ERR)),
+        };
+        authorize_test(true, authorize_store_error)
+    }
+
+    #[test]
+    fn test_authorize_correct() {
+        let authorize_correct = |service: AuthService| match service.authorize(TEST_TOKEN) {
+            Ok(authorized) => assert!(authorized, "should return a true Ok result"),
+            Err(e) => assert!(false, "shouldn't return an Err Result"),
+        };
+        authorize_test(false, authorize_correct)
     }
 }
