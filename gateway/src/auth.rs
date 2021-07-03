@@ -132,7 +132,7 @@ impl fmt::Display for AuthenticationError {
 // Describes the basic contract expected by a Token's store
 pub trait TokenStore {
     fn retrieve(&self, key: &str) -> Result<JWTToken, TokenStoreError>;
-    fn save(&mut self, key: &str, ser_token: &str) -> Result<(), TokenStoreError>;
+    fn save(&self, key: &str, ser_token: &str) -> Result<(), TokenStoreError>;
 }
 
 // Describes the basic contract expected by an authenticator's client
@@ -174,7 +174,7 @@ impl AuthService {
     }
 
     // Authenticates user against authentication service and returns a JWT token value
-    pub fn login(&mut self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
+    pub fn login(&self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
         match self.authenticator.authenticate(usr, pass) {
             Ok(logged_in) => {
                 if !logged_in {
@@ -222,7 +222,7 @@ mod tests {
     }
 
     impl TokenStore for MockTokenStore {
-        fn retrieve(&self, key: &str) -> Result<JWTToken, TokenStoreError> {
+        fn retrieve(&self, _: &str) -> Result<JWTToken, TokenStoreError> {
             if self.errored {
                 return Err(TokenStoreError {
                     message: String::from("retrieve err"),
@@ -234,7 +234,7 @@ mod tests {
             })
         }
 
-        fn save(&mut self, key: &str, ser_token: &str) -> Result<(), TokenStoreError> {
+        fn save(&self, _: &str, _: &str) -> Result<(), TokenStoreError> {
             if self.errored {
                 return Err(TokenStoreError {
                     message: String::from("save err"),
@@ -277,6 +277,57 @@ mod tests {
         ) {
             Ok(_) => assert!(true, "correct initialization"),
             Err(e) => assert!(false, "unexpected error: {}", e.message),
+        }
+    }
+
+    #[test]
+    fn test_errored_login() {
+        match AuthService::new(
+            Box::new(MockAuthenticator {
+                errored: true,
+                correct: false,
+            }),
+            Box::new(MockTokenStore { errored: false }),
+            1000,
+            "whatever",
+        ) {
+            Ok(service) => {
+                match service.login("something", "somepass") {
+                    Ok(_) => assert!(false, "shouldn't return an ok result"),
+                    Err(e) => assert!(true, "should return an error"),
+                };
+            }
+            Err(e) => assert!(
+                false,
+                "shoudn't return error on initialization: {}",
+                e.message
+            ),
+        }
+    }
+
+    #[test]
+    fn test_incorrect_login() {
+        let expected_error_msg = String::from("invalid credentials");
+        match AuthService::new(
+            Box::new(MockAuthenticator {
+                errored: false,
+                correct: false,
+            }),
+            Box::new(MockTokenStore { errored: false }),
+            1000,
+            "whatever",
+        ) {
+            Ok(service) => {
+                match service.login("whatever", "whateverpass") {
+                    Ok(_) => assert!(false, "shouldn't return an ok result"),
+                    Err(e) => assert_eq!(e.message, expected_error_msg),
+                };
+            }
+            Err(e) => assert!(
+                false,
+                "shoudn't return error on initialization: {}",
+                e.message
+            ),
         }
     }
 }

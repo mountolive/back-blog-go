@@ -1,7 +1,8 @@
 //! In memory implementation for token's storage
 
 use crate::auth::JWTToken;
-use crate::store::{Storage, StorageError};
+use crate::store::{StorageDriver, StorageError};
+use parking_lot::RwLock;
 use serde_json;
 use std::collections::HashMap;
 use std::fmt;
@@ -27,25 +28,16 @@ impl fmt::Display for MemStorageError {
 }
 
 // Represents a token's storage in memory by means of a hash map
-pub struct MemStorage {
-    data: HashMap<String, String>,
+pub struct MemStorageDriver {
+    data: RwLock<HashMap<String, String>>,
 }
 
-impl<'a> MemStorage {
-    // Creates a new storage
-    fn new() -> MemStorage {
-        MemStorage {
-            data: HashMap::new(),
-        }
-    }
-}
-
-impl Storage for MemStorage {
+impl StorageDriver for MemStorageDriver {
     // Retrieves the corresponding token associated with the passed key or returns a MemStorageError
     fn get(&self, key: &str) -> Result<JWTToken, Box<dyn StorageError>> {
-        match self.data.get(&key.to_string()) {
+        match self.data.read().get(&key.to_string()) {
             Some(ser_token) => {
-                // TODO Handle deserializing Result for MemStorage's get
+                // TODO Handle deserializing Result for MemStorageDriver's get
                 let token: JWTToken = serde_json::from_str(ser_token).unwrap();
                 Ok(token)
             }
@@ -56,8 +48,8 @@ impl Storage for MemStorage {
     }
 
     // Saves the corresponding token associated with the passed key or returns a MemStorageError
-    fn set(&mut self, key: &str, value: &str) -> Result<(), Box<dyn StorageError>> {
-        self.data.insert(key.to_string(), value.to_string());
+    fn set(&self, key: &str, value: &str) -> Result<(), Box<dyn StorageError>> {
+        self.data.write().insert(key.to_string(), value.to_string());
         Ok(())
     }
 }
