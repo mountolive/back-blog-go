@@ -212,3 +212,71 @@ impl AuthService {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct MockTokenStore {
+        errored: bool,
+    }
+
+    impl TokenStore for MockTokenStore {
+        fn retrieve(&self, key: &str) -> Result<JWTToken, TokenStoreError> {
+            if self.errored {
+                return Err(TokenStoreError {
+                    message: String::from("retrieve err"),
+                });
+            }
+            Ok(JWTToken {
+                value: String::from("value"),
+                until: Duration::new(5, 0),
+            })
+        }
+
+        fn save(&mut self, key: &str, ser_token: &str) -> Result<(), TokenStoreError> {
+            if self.errored {
+                return Err(TokenStoreError {
+                    message: String::from("save err"),
+                });
+            }
+            Ok(())
+        }
+    }
+
+    struct MockAuthenticator {
+        errored: bool,
+        correct: bool,
+    }
+
+    impl Authenticator for MockAuthenticator {
+        fn authenticate(
+            &self,
+            username: &str,
+            password: &str,
+        ) -> Result<bool, AuthenticationError> {
+            if self.errored {
+                return Err(AuthenticationError {
+                    message: String::from("authenticate err"),
+                });
+            }
+            Ok(self.correct)
+        }
+    }
+
+    #[test]
+    fn test_correct_new_auth_service() {
+        match AuthService::new(
+            Box::new(MockAuthenticator {
+                errored: false,
+                correct: false,
+            }),
+            Box::new(MockTokenStore { errored: false }),
+            1000,
+            "whatever",
+        ) {
+            Ok(_) => assert!(true, "correct initialization"),
+            Err(e) => assert!(false, "unexpected error: {}", e.message),
+        }
+    }
+}
