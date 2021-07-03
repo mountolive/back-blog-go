@@ -330,4 +330,54 @@ mod tests {
             ),
         }
     }
+
+    #[test]
+    fn test_correct_login() {
+        match AuthService::new(
+            Box::new(MockAuthenticator {
+                errored: false,
+                correct: true,
+            }),
+            Box::new(MockTokenStore { errored: false }),
+            1001,
+            "I don't know what I'm doing -> this is my secret",
+        ) {
+            Ok(service) => {
+                match service.login("noice", "noicepassword") {
+                    Ok(token) => assert!(!token.is_empty(), "should return a non empty token"),
+                    Err(e) => {
+                        assert!(false, "shouldn't return an Err result when correct login")
+                    }
+                };
+            }
+            Err(e) => assert!(
+                false,
+                "shoudn't return error on initialization: {}",
+                e.message
+            ),
+        }
+    }
+
+    fn authorize_test(
+        err_store: bool,
+        err_authenticator: bool,
+        test_case: fn(service: AuthService),
+    ) {
+        match AuthService::new(
+            Box::new(MockAuthenticator {
+                errored: false,
+                correct: true,
+            }),
+            Box::new(MockTokenStore { errored: false }),
+            1001,
+            "some super secret",
+        ) {
+            Ok(service) => test_case(service),
+            Err(e) => assert!(
+                false,
+                "shoudn't return error on initialization: {}",
+                e.message
+            ),
+        }
+    }
 }
