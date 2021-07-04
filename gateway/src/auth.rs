@@ -48,17 +48,13 @@ impl JWTToken {
                     value: token_value,
                     until: now + Duration::from_secs(ttl),
                 }),
-                Err(_) => {
-                    return Err(TokenError {
-                        message: String::from(WRONG_NOW),
-                    })
-                }
+                Err(_) => Err(TokenError {
+                    message: String::from(WRONG_NOW),
+                }),
             },
-            Err(_) => {
-                return Err(TokenError {
-                    message: String::from("signing token"),
-                })
-            }
+            Err(_) => Err(TokenError {
+                message: String::from("signing token"),
+            }),
         }
     }
 
@@ -190,12 +186,12 @@ impl AuthService {
                 // TODO Handle serializing Result for login's token
                 let serialized_token = serde_json::to_string(&token).unwrap();
                 match self.store.save(&usr, &serialized_token[..]) {
-                    Ok(_) => return Ok(token.value),
-                    Err(e) => return Err(AuthenticationError { message: e.message }),
+                    Ok(_) => Ok(token.value),
+                    Err(e) => Err(AuthenticationError { message: e.message }),
                 }
             }
             Err(e) => return Err(e),
-        };
+        }
     }
 
     // Checks whether the received token is still authorized
@@ -216,6 +212,24 @@ impl AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_generate_token_error_signing_token() {}
+
+    #[test]
+    fn test_generate_token_correct() {}
+
+    #[test]
+    fn test_get_username_error() {}
+
+    #[test]
+    fn test_get_username_correct() {}
+
+    #[test]
+    fn test_is_evicted_before_now() {}
+
+    #[test]
+    fn test_is_evicted_past_now() {}
 
     const RETRIEVE_ERR: &str = "retrieve err";
     const SAVE_ERR: &str = "save err";

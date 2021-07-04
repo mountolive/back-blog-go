@@ -56,7 +56,7 @@ impl fmt::Display for ReaderError {
 }
 
 // Filter contains the possible options for filtering posts
-enum Filter {
+pub enum Filter {
     DateRange {
         from: Instant,
         to: Instant,
