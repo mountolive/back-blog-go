@@ -3,7 +3,6 @@
 use crate::auth::JWTToken;
 use crate::store::{StorageDriver, StorageError};
 use parking_lot::RwLock;
-use serde_json;
 use std::collections::HashMap;
 use std::fmt;
 

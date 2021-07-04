@@ -3,7 +3,6 @@
 use hmac::{Hmac, NewMac};
 use jwt::{Header, SignWithKey, Token, VerifyWithKey};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -34,8 +33,8 @@ pub struct JWTToken {
     until: Duration,
 }
 
-const WRONG_NOW: &str = "unable to determine now's timestamp";
-const USER_KEY: &str = "user";
+static WRONG_NOW: &str = "unable to determine now's timestamp";
+static USER_KEY: &str = "user";
 
 impl JWTToken {
     // Creates a new JWT token from the username passed and with the passed TTL (in seconds)
@@ -190,7 +189,7 @@ impl AuthService {
                     Err(e) => Err(AuthenticationError { message: e.message }),
                 }
             }
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 
@@ -200,11 +199,11 @@ impl AuthService {
             Ok(usr) => match self.store.retrieve(&usr[..]) {
                 Ok(saved_token) => match saved_token.is_evicted() {
                     Ok(evicted) => Ok(evicted),
-                    Err(e) => return Err(AuthenticationError { message: e.message }),
+                    Err(e) => Err(AuthenticationError { message: e.message }),
                 },
-                Err(e) => return Err(AuthenticationError { message: e.message }),
+                Err(e) => Err(AuthenticationError { message: e.message }),
             },
-            Err(e) => return Err(AuthenticationError { message: e.message }),
+            Err(e) => Err(AuthenticationError { message: e.message }),
         }
     }
 }
@@ -212,24 +211,104 @@ impl AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::thread;
+
+    const SECRET: &str = "un secreto";
+    const USER: &str = "noice";
+    const PASS: &str = "noicepassword";
+    // Token using "noice" and "noicepassword" as login params and "un secreto" as secret
+    const TEST_TOKEN: &str =
+        "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoibm9pY2UifQ.Rse8j2VNi1HmbD3Z-JAMB37UWPCD5GNV3ndnAxS1JYM";
+
+    fn generate_key(test_case: fn(token_key: &Hmac<Sha256>)) {
+        match Hmac::new_from_slice(SECRET.as_bytes()) {
+            Ok(key) => test_case(&key),
+            Err(e) => assert!(
+                false,
+                "shouldn't return an Err result when creating the key: {}",
+                e,
+            ),
+        }
+    }
 
     #[test]
-    fn test_generate_token_error_signing_token() {}
+    fn test_generate_token_correct() {
+        let correct = |key: &Hmac<Sha256>| match JWTToken::generate("test", 1000, key) {
+            Ok(_) => assert!(true, "should return an Ok result"),
+            Err(e) => assert!(false, "shouldn't return an Err {}", e),
+        };
+        generate_key(correct)
+    }
 
     #[test]
-    fn test_generate_token_correct() {}
+    fn test_get_username_error() {
+        let test_case = |key: &Hmac<Sha256>| {
+            let exp_err_msg = String::from("unable to retrieve username");
+            match Hmac::new_from_slice("whatever".as_bytes()) {
+                Ok(other_key) => {
+                    let username = "whatever";
+                    match JWTToken::generate(username, 2000, &other_key) {
+                        Ok(token) => match JWTToken::get_username(&token.value[..], key) {
+                            Ok(_) => assert!(
+                                false,
+                                "shouldn't return Ok result when evaluating with wrong key"
+                            ),
+                            Err(e) => assert_eq!(e.message, exp_err_msg),
+                        },
+                        Err(_) => {
+                            assert!(false, "shoudln't return an error when creating mock token")
+                        }
+                    }
+                }
+                Err(_) => assert!(false, "shouldn't return an error when creating mock key"),
+            }
+        };
+        generate_key(test_case)
+    }
 
     #[test]
-    fn test_get_username_error() {}
+    fn test_get_username_correct() {
+        let test_case = |key: &Hmac<Sha256>| match JWTToken::generate(USER, 2000, key) {
+            Ok(token) => match JWTToken::get_username(&token.value[..], key) {
+                Ok(found) => assert_eq!(found, USER),
+                Err(_) => assert!(false, "shouldn't return an Err while verifying the token"),
+            },
+            Err(_) => {
+                assert!(false, "shoudln't return an error when creating mock token")
+            }
+        };
+        generate_key(test_case)
+    }
 
     #[test]
-    fn test_get_username_correct() {}
+    fn test_is_evicted_before_now() {
+        let test_case = |key: &Hmac<Sha256>| match JWTToken::generate(USER, 5, key) {
+            Ok(token) => {
+                thread::sleep(Duration::from_secs(2));
+                let is_evicted = token.is_evicted().unwrap();
+                assert!(!is_evicted, "should return true");
+            }
+            Err(_) => {
+                assert!(false, "shoudln't return an error when creating mock token")
+            }
+        };
+        generate_key(test_case)
+    }
 
     #[test]
-    fn test_is_evicted_before_now() {}
-
-    #[test]
-    fn test_is_evicted_past_now() {}
+    fn test_is_evicted_past_now() {
+        let test_case = |key: &Hmac<Sha256>| match JWTToken::generate(USER, 2, key) {
+            Ok(token) => {
+                thread::sleep(Duration::from_secs(3));
+                let is_evicted = token.is_evicted().unwrap();
+                assert!(is_evicted, "should return false");
+            }
+            Err(_) => {
+                assert!(false, "shoudln't return an error when creating mock token")
+            }
+        };
+        generate_key(test_case)
+    }
 
     const RETRIEVE_ERR: &str = "retrieve err";
     const SAVE_ERR: &str = "save err";
@@ -267,11 +346,7 @@ mod tests {
     }
 
     impl Authenticator for MockAuthenticator {
-        fn authenticate(
-            &self,
-            username: &str,
-            password: &str,
-        ) -> Result<bool, AuthenticationError> {
+        fn authenticate(&self, _: &str, _: &str) -> Result<bool, AuthenticationError> {
             if self.errored {
                 return Err(AuthenticationError {
                     message: String::from("authenticate err"),
@@ -311,7 +386,7 @@ mod tests {
             Ok(service) => {
                 match service.login("something", "somepass") {
                     Ok(_) => assert!(false, "shouldn't return an ok result"),
-                    Err(e) => assert!(true, "should return an error"),
+                    Err(_) => assert!(true, "should return an error"),
                 };
             }
             Err(e) => assert!(
@@ -348,13 +423,6 @@ mod tests {
         }
     }
 
-    const USER: &str = "noice";
-    const PASS: &str = "noicepassword";
-    const SECRET: &str = "un secreto";
-    // Token using "noice" and "noicepassword" as login params and "un secreto" as secret
-    const TEST_TOKEN: &str =
-        "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoibm9pY2UifQ.Rse8j2VNi1HmbD3Z-JAMB37UWPCD5GNV3ndnAxS1JYM";
-
     #[test]
     fn test_correct_login() {
         match AuthService::new(
@@ -369,7 +437,7 @@ mod tests {
             Ok(service) => {
                 match service.login(USER, PASS) {
                     Ok(token) => assert_eq!(token, TEST_TOKEN),
-                    Err(e) => {
+                    Err(_) => {
                         assert!(false, "shouldn't return an Err result when correct login")
                     }
                 };
@@ -414,7 +482,7 @@ mod tests {
     fn test_authorize_correct() {
         let authorize_correct = |service: AuthService| match service.authorize(TEST_TOKEN) {
             Ok(authorized) => assert!(authorized, "should return a true Ok result"),
-            Err(e) => assert!(false, "shouldn't return an Err Result"),
+            Err(_) => assert!(false, "shouldn't return an Err Result"),
         };
         authorize_test(false, authorize_correct)
     }

@@ -8,3 +8,6 @@ echo "TESTING POST PROJECT"
 cd post || return
 make test
 cd ..
+echo "TESTING GATEWAY PROJECT"
+cd gateway || return
+cargo test
