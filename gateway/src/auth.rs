@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::time::{Duration, SystemTime};
 
-// Error that wraps when a JWTToken action goes wrong
+/// Error that wraps when a JWTToken action goes wrong
 #[derive(Debug)]
 pub struct TokenError {
     message: String,
@@ -26,7 +26,7 @@ impl fmt::Display for TokenError {
     }
 }
 
-// Basic implementation of a JWT token with TTL
+/// Basic implementation of a JWT token with TTL
 #[derive(Serialize, Deserialize)]
 pub struct JWTToken {
     pub value: String,
@@ -37,7 +37,7 @@ static WRONG_NOW: &str = "unable to determine now's timestamp";
 static USER_KEY: &str = "user";
 
 impl JWTToken {
-    // Creates a new JWT token from the username passed and with the passed TTL (in seconds)
+    /// Creates a new JWT token from the username passed and with the passed TTL (in seconds)
     pub fn generate(username: &str, ttl: u64, key: &Hmac<Sha256>) -> Result<JWTToken, TokenError> {
         let mut claims = BTreeMap::new();
         claims.insert(USER_KEY, username);
@@ -57,7 +57,7 @@ impl JWTToken {
         }
     }
 
-    // Explodes and a gets underlying username from JWT token
+    /// Explodes and a gets underlying username from JWT token
     fn get_username(token_value: &str, key: &Hmac<Sha256>) -> Result<String, TokenError> {
         let token: Token<Header, BTreeMap<String, String>, _>;
         match VerifyWithKey::verify_with_key(token_value, key) {
@@ -71,7 +71,7 @@ impl JWTToken {
         }
     }
 
-    // Checks whether a token is already evicted
+    /// Checks whether a token is already evicted
     fn is_evicted(&self) -> Result<bool, TokenError> {
         match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(now) => Ok(now > self.until),
@@ -88,7 +88,7 @@ impl PartialEq for JWTToken {
     }
 }
 
-// Error returned when an action related to the token's store goes wrong
+/// Error returned when an action related to the token's store goes wrong
 #[derive(Debug)]
 pub struct TokenStoreError {
     pub message: String,
@@ -106,7 +106,7 @@ impl fmt::Display for TokenStoreError {
     }
 }
 
-// Wrapping error for authetication and authorization actions
+/// Wrapping error for authetication and authorization actions
 #[derive(Debug)]
 pub struct AuthenticationError {
     message: String,
@@ -124,18 +124,18 @@ impl fmt::Display for AuthenticationError {
     }
 }
 
-// Describes the basic contract expected by a Token's store
+/// Describes the basic contract expected by a Token's store
 pub trait TokenStore {
     fn retrieve(&self, key: &str) -> Result<JWTToken, TokenStoreError>;
     fn save(&self, key: &str, ser_token: &str) -> Result<(), TokenStoreError>;
 }
 
-// Describes the basic contract expected by an authenticator's client
+/// Describes the basic contract expected by an authenticator's client
 pub trait Authenticator {
     fn authenticate(&self, username: &str, password: &str) -> Result<bool, AuthenticationError>;
 }
 
-// Handles login and authorization by means of an Authenticator and a TokenStore
+/// Handles login and authorization by means of an Authenticator and a TokenStore
 pub struct AuthService {
     authenticator: Box<dyn Authenticator>,
     store: Box<dyn TokenStore>,
@@ -144,7 +144,7 @@ pub struct AuthService {
 }
 
 impl AuthService {
-    // Creates a new AuthService
+    /// Creates a new AuthService
     pub fn new(
         authenticator: Box<dyn Authenticator>,
         store: Box<dyn TokenStore>,
@@ -168,7 +168,7 @@ impl AuthService {
         })
     }
 
-    // Authenticates user against authentication service and returns a JWT token value
+    /// Authenticates user against authentication service and returns a JWT token value
     pub fn login(&self, usr: &str, pass: &str) -> Result<String, AuthenticationError> {
         match self.authenticator.authenticate(usr, pass) {
             Ok(logged_in) => {
@@ -193,7 +193,7 @@ impl AuthService {
         }
     }
 
-    // Checks whether the received token is still authorized
+    /// Checks whether the received token is still authorized
     pub fn authorize(&self, token_value: &str) -> Result<bool, AuthenticationError> {
         match JWTToken::get_username(token_value, &self.token_key) {
             Ok(usr) => match self.store.retrieve(&usr[..]) {

@@ -11,7 +11,7 @@ pub struct MemStorageError {
     message: String,
 }
 
-// An Error implementation for memory's storage
+/// An Error implementation for memory's storage
 impl StorageError for MemStorageError {}
 
 impl std::error::Error for MemStorageError {
@@ -26,13 +26,13 @@ impl fmt::Display for MemStorageError {
     }
 }
 
-// Represents a token's storage in memory by means of a hash map
+/// Represents a token's storage in memory by means of a hash map
 pub struct MemStorageDriver {
     data: RwLock<HashMap<String, String>>,
 }
 
 impl StorageDriver for MemStorageDriver {
-    // Retrieves the corresponding token associated with the passed key or returns a MemStorageError
+    /// Retrieves the corresponding token associated with the passed key or returns a MemStorageError
     fn get(&self, key: &str) -> Result<JWTToken, Box<dyn StorageError>> {
         match self.data.read().get(&key.to_string()) {
             Some(ser_token) => {
@@ -46,7 +46,7 @@ impl StorageDriver for MemStorageDriver {
         }
     }
 
-    // Saves the corresponding token associated with the passed key or returns a MemStorageError
+    /// Saves the corresponding token associated with the passed key or returns a MemStorageError
     fn set(&self, key: &str, value: &str) -> Result<(), Box<dyn StorageError>> {
         self.data.write().insert(key.to_string(), value.to_string());
         Ok(())

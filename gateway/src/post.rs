@@ -3,7 +3,7 @@
 use std::fmt;
 use std::time::Instant;
 
-// DTO a full post's data
+/// DTO a full post's data
 pub struct Post {
     pub id: String,
     pub creator: String,
@@ -13,7 +13,7 @@ pub struct Post {
     pub created_at: Instant,
 }
 
-// Error associated to a create or update action regarding posts
+/// Error associated to a create or update action regarding posts
 #[derive(Debug)]
 pub struct MutatorError {
     message: String,
@@ -31,13 +31,13 @@ impl fmt::Display for MutatorError {
     }
 }
 
-// Defines the contract for creating or updating posts
+/// Defines the contract for creating or updating posts
 pub trait Mutate {
     fn create(&self, post: Post) -> Result<(), MutatorError>;
     fn update(&self, post: Post) -> Result<(), MutatorError>;
 }
 
-// Error associated to a create or update action regarding posts
+/// Error associated to a create or update action regarding posts
 #[derive(Debug)]
 pub struct ReaderError {
     message: String,
@@ -55,7 +55,7 @@ impl fmt::Display for ReaderError {
     }
 }
 
-// Filter contains the possible options for filtering posts
+/// Filter contains the possible options for filtering posts
 pub enum Filter {
     DateRange {
         from: Instant,
@@ -70,7 +70,7 @@ pub enum Filter {
     },
 }
 
-// DTO holding basic data from a post
+/// DTO holding basic data from a post
 pub struct PostSummary {
     pub id: String,
     pub creator: String,
@@ -79,7 +79,7 @@ pub struct PostSummary {
     pub created_at: Instant,
 }
 
-// Read defines the contract for listing posts
+/// Read defines the contract for listing posts
 pub trait Read {
     fn posts(&self, filter: Filter) -> Result<Vec<PostSummary>, ReaderError>;
     fn post(&self, id: &str) -> Result<Post, ReaderError>;
