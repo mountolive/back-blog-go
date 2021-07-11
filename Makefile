@@ -13,8 +13,11 @@ test-gateway:
 clippy:
 	cd gateway && cargo clippy
 
+build-gateway:
+	cd gateway && cargo build
+
 todo:
-	find . -name '*.go' | xargs grep -n TODO
+	find . -name '*.go' -or -name '*.rs' | xargs grep -n TODO
 
 proto-gen:
 	./scripts/proto_all.sh
