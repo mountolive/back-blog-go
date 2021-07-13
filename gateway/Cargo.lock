@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "autocfg"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d49d90015b3c36167a20fe2810c5cd875ad504b39cff3d4eae7977e6b7c1cb2"
+
+[[package]]
 name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15,6 +21,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44265cf903f576fcaa1c2f23b32ec2dadaa8ec9d6b7c6212704d72a417bfbeef"
 dependencies = [
  "base64",
+]
+
+[[package]]
+name = "bincode"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f04a5e50dc80b3d5d35320889053637d15011aed5e66b66b37ae798c65da6f7"
+dependencies = [
+ "autocfg",
+ "byteorder",
+ "serde",
 ]
 
 [[package]]
@@ -175,6 +192,7 @@ dependencies = [
 name = "gateway"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "hmac",
  "jwt",
  "nats",

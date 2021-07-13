@@ -17,7 +17,7 @@ pub struct Post {
 /// Error associated to a create or update action regarding posts
 #[derive(Debug)]
 pub struct MutatorError {
-    message: String,
+    pub message: String,
 }
 
 impl std::error::Error for MutatorError {

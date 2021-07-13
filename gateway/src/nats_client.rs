@@ -1,5 +1,6 @@
 use crate::post::{CreatePost, MutatorClient, MutatorError, UpdatePost};
 use nats;
+use serde::Serialize;
 use std::fmt;
 
 /// Config encodes the necessary data for a NATS connection
@@ -39,24 +40,50 @@ impl fmt::Display for ClientError {
 /// NATS client's wrapper
 pub struct Client {
     config: Config,
+    conn: nats::Connection,
 }
 
 impl Client {
     /// Creates a new NATS' client with passed config's data
     pub fn connect(config: Config) -> Result<Client, ClientError> {
-        Ok(Client { config })
+        let mut options = nats::Options::new();
+        if !config.user.is_empty() {
+            options = nats::Options::with_user_pass(&config.user[..], &config.pass[..]);
+        }
+        match options.connect(&config.url()[..]) {
+            Ok(conn) => Ok(Client { config, conn }),
+            Err(e) => Err(ClientError {
+                message: e.to_string(),
+            }),
+        }
+    }
+
+    fn send<T: Serialize>(&self, payload: T) -> Result<(), MutatorError> {
+        match bincode::serialize(&payload) {
+            Ok(bytes) => match self.conn.publish(&self.config.subject[..], &bytes[..]) {
+                Ok(()) => Ok(()),
+                Err(e) => Err(MutatorError {
+                    message: e.to_string(),
+                }),
+            },
+            Err(e) => Err(MutatorError {
+                message: e.to_string(),
+            }),
+        }
     }
 }
 
 impl MutatorClient<CreatePost> for Client {
-    fn send(&self, _: CreatePost) -> Result<(), MutatorError> {
-        Ok(())
+    /// Implements the send method for post creation
+    fn send(&self, payload: CreatePost) -> Result<(), MutatorError> {
+        self.send(payload)
     }
 }
 
 impl MutatorClient<UpdatePost> for Client {
-    fn send(&self, _: UpdatePost) -> Result<(), MutatorError> {
-        Ok(())
+    /// Implements the send method for post updating
+    fn send(&self, payload: UpdatePost) -> Result<(), MutatorError> {
+        self.send(payload)
     }
 }
 
