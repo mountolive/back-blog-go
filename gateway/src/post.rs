@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 use std::fmt;
-use std::time::Instant;
+use std::time::SystemTime;
 
 /// DTO a full post's data
 pub struct Post {
@@ -11,7 +11,7 @@ pub struct Post {
     pub title: String,
     pub content: String,
     pub tags: Vec<String>,
-    pub created_at: Instant,
+    pub created_at: SystemTime,
 }
 
 /// Error associated to a create or update action regarding posts
@@ -110,8 +110,8 @@ impl fmt::Display for ReaderError {
 /// Filter contains the possible options for filtering posts
 pub enum Filter {
     DateRange {
-        from: Instant,
-        to: Instant,
+        from: SystemTime,
+        to: SystemTime,
         page: i32,
         page_size: i32,
     },
@@ -128,7 +128,7 @@ pub struct PostSummary {
     pub creator: String,
     pub title: String,
     pub tags: Vec<String>,
-    pub created_at: Instant,
+    pub created_at: SystemTime,
 }
 
 /// Read defines the contract for listing posts
