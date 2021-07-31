@@ -1,10 +1,11 @@
 //! Standard operations related to posts
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::time::SystemTime;
 
 /// DTO a full post's data
+#[derive(Deserialize)]
 pub struct Post {
     pub id: String,
     pub creator: String,
@@ -92,7 +93,7 @@ impl PostUpdater {
 /// Error associated to a create or update action regarding posts
 #[derive(Debug)]
 pub struct ReaderError {
-    message: String,
+    pub message: String,
 }
 
 impl std::error::Error for ReaderError {
@@ -123,6 +124,7 @@ pub enum Filter {
 }
 
 /// DTO holding basic data from a post
+#[derive(Deserialize)]
 pub struct PostSummary {
     pub id: String,
     pub creator: String,
