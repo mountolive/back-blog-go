@@ -28,7 +28,7 @@ impl ReaderClientConfig {
     }
 }
 
-/// It's a impl ReaderClient
+/// It's an impl ReaderClient
 pub struct PostReader {
     parsed_base_url: reqwest::Url,
     config: ReaderClientConfig,
@@ -109,7 +109,7 @@ impl PostReader {
 }
 
 impl ReadClient for PostReader {
-    /// Retrieve all posts' summaries that match the passed filter
+    /// Retrieves all posts' summaries that match the passed filter
     fn posts(&self, filter: Filter) -> Result<Vec<PostSummary>, ReaderError> {
         match reqwest::blocking::get(self.build_filter_url(filter)) {
             Ok(response) => match response.json() {
@@ -124,7 +124,7 @@ impl ReadClient for PostReader {
         }
     }
 
-    /// Retrieve the post with the passed id
+    /// Retrieves the post with the passed id
     fn post(&self, id: &str) -> Result<Post, ReaderError> {
         match reqwest::blocking::get(self.build_id_url(id)) {
             Ok(response) => match response.json() {
