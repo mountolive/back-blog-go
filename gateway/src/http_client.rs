@@ -1,6 +1,6 @@
 use crate::post::{Filter, Post, PostSummary, ReadClient, ReaderError};
 use reqwest;
-use time::{format_description, OffsetDateTime};
+use time::format_description;
 
 /// Wraps the Client's basic config
 pub struct ReaderClientConfig {
@@ -64,11 +64,11 @@ impl PostReader {
                     &[
                         (
                             &self.config.from_param_name[..],
-                            &OffsetDateTime::from(from).format(&format).unwrap()[..],
+                            &from.format(&format).unwrap()[..],
                         ),
                         (
                             &self.config.to_param_name[..],
-                            &OffsetDateTime::from(to).format(&format).unwrap()[..],
+                            &to.format(&format).unwrap()[..],
                         ),
                         (&self.config.page_param_name[..], &format!("{}", page)[..]),
                         (

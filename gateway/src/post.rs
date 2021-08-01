@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::time::SystemTime;
+use time::OffsetDateTime;
 
 /// DTO a full post's data
 #[derive(Deserialize)]
@@ -111,8 +112,8 @@ impl fmt::Display for ReaderError {
 /// Filter contains the possible options for filtering posts
 pub enum Filter {
     DateRange {
-        from: SystemTime,
-        to: SystemTime,
+        from: OffsetDateTime,
+        to: OffsetDateTime,
         page: i32,
         page_size: i32,
     },
