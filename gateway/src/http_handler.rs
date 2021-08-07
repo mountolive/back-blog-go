@@ -14,10 +14,10 @@ pub struct HTTPHandler {
 
 impl HTTPHandler {
     /// Starts the server
-    pub async fn start(&self, addr: SocketAddr) {
+    pub async fn start(&'static self, addr: SocketAddr) {
         let posts_by_filter = warp::path!("posts")
             .and(warp::get())
-            .and(warp::query().map(|filter: PostFilter| self.reader.posts(filter)));
+            .and(warp::query().map(move |filter: PostFilter| self.reader.posts(filter)));
 
         let post_by_id = warp::path!("posts" / String).and(warp::get());
 

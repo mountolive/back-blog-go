@@ -61,6 +61,10 @@ pub struct PostCreator {
     pub client: Box<dyn MutatorClient<CreatePost>>,
 }
 
+// Marking it as "thread-safe"
+unsafe impl Send for PostCreator {}
+unsafe impl Sync for PostCreator {}
+
 impl PostCreator {
     /// Creates a post with the corresponding data passed
     pub fn create(&self, post: CreatePost) -> Result<(), MutatorError> {
@@ -77,6 +81,10 @@ impl PostCreator {
 pub struct PostUpdater {
     pub client: Box<dyn MutatorClient<UpdatePost>>,
 }
+
+// Marking it as "thread-safe"
+unsafe impl Send for PostUpdater {}
+unsafe impl Sync for PostUpdater {}
 
 impl PostUpdater {
     /// Updates a post with the corresponding data passed

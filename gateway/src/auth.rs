@@ -143,6 +143,10 @@ pub struct AuthService {
     token_key: Hmac<Sha256>,
 }
 
+// Marking it as thread-safe
+unsafe impl Send for AuthService {}
+unsafe impl Sync for AuthService {}
+
 impl AuthService {
     /// Creates a new AuthService
     pub fn new(

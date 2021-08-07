@@ -88,7 +88,7 @@ impl MutatorClient<UpdatePost> for Client {
 }
 
 mod test {
-    use super::*;
+    use super::Config;
 
     #[test]
     fn test_url() {
