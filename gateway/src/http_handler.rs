@@ -74,48 +74,83 @@ impl reject::Reject for HandlerError {}
 
 impl warp::Reply for HandlerError {
     fn into_response(self) -> warp::reply::Response {
-        todo!()
+        // TODO Handle errors specifically for HandleError when converting into warp::reply::Response
+        warp::reply::with_status(
+            warp::reply::Response::new(warp::hyper::Body::from(self.message)),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .into_response()
+    }
+}
+
+struct JSONResponse(Result<warp::reply::WithStatus<warp::reply::Json>, HandlerError>);
+
+impl warp::Reply for JSONResponse {
+    fn into_response(self) -> warp::reply::Response {
+        match self.0 {
+            Ok(ok) => ok.into_response(),
+            Err(err) => err.into_response(),
+        }
+    }
+}
+
+struct EmptyResponse(Result<warp::reply::WithStatus<String>, HandlerError>);
+
+impl warp::Reply for EmptyResponse {
+    fn into_response(self) -> warp::reply::Response {
+        match self.0 {
+            Ok(ok) => ok.into_response(),
+            Err(err) => err.into_response(),
+        }
     }
 }
 
 impl HTTPHandler {
-    async fn posts(&self, filter: PostFilter) -> Result<impl warp::Reply, HandlerError> {
+    fn posts(&self, filter: PostFilter) -> JSONResponse {
         match self.reader.posts(filter) {
-            Ok(posts) => Ok(warp::reply::json(&posts)),
-            Err(err) => Err(HandlerError {
+            Ok(posts) => JSONResponse(Ok(warp::reply::with_status(
+                warp::reply::json(&posts),
+                StatusCode::OK,
+            ))),
+            Err(err) => JSONResponse(Err(HandlerError {
                 message: err.message,
-            }),
+            })),
         }
     }
 
-    async fn post(&self, id: &str) -> Result<impl warp::Reply, HandlerError> {
+    fn post(&self, id: &str) -> JSONResponse {
         match self.reader.post(&id[..]) {
-            Ok(post) => Ok(warp::reply::json(&post)),
-            Err(err) => Err(HandlerError {
+            Ok(post) => JSONResponse(Ok(warp::reply::with_status(
+                warp::reply::json(&post),
+                StatusCode::OK,
+            ))),
+            Err(err) => JSONResponse(Err(HandlerError {
                 message: err.message,
-            }),
+            })),
         }
     }
 
-    async fn create_post(&self, create: CreatePost) -> Result<impl warp::Reply, HandlerError> {
+    fn create_post(&self, create: CreatePost) -> EmptyResponse {
         match self.creator.create(create) {
-            Ok(_) => Ok(warp::reply::with_status("OK", StatusCode::CREATED)),
-            Err(err) => Err(HandlerError {
+            Ok(_) => EmptyResponse(Ok(warp::reply::with_status(
+                "OK".to_string(),
+                StatusCode::CREATED,
+            ))),
+            Err(err) => EmptyResponse(Err(HandlerError {
                 message: err.message,
-            }),
+            })),
         }
     }
 
-    async fn update_post(
-        &self,
-        id: String,
-        update: UpdatePost,
-    ) -> Result<impl warp::Reply, HandlerError> {
+    fn update_post(&self, id: String, update: UpdatePost) -> EmptyResponse {
         match self.updater.update(&id[..], update) {
-            Ok(_) => Ok(warp::reply::with_status("OK", StatusCode::NO_CONTENT)),
-            Err(err) => Err(HandlerError {
+            Ok(_) => EmptyResponse(Ok(warp::reply::with_status(
+                "OK".to_string(),
+                StatusCode::NO_CONTENT,
+            ))),
+            Err(err) => EmptyResponse(Err(HandlerError {
                 message: err.message,
-            }),
+            })),
         }
     }
 
