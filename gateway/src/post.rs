@@ -5,7 +5,7 @@ use std::fmt;
 use std::time::SystemTime;
 
 /// DTO a full post's data
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Post {
     pub id: String,
     pub creator: String,
@@ -147,7 +147,7 @@ pub enum Filter {
 }
 
 /// DTO holding basic data from a post
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct PostSummary {
     pub id: String,
     pub creator: String,
