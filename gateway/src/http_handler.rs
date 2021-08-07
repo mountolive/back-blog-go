@@ -141,12 +141,12 @@ impl HTTPHandler {
             .and(warp::body::json())
             .map(move |id: String, update: UpdatePost| self.update_post(id, update));
 
-        let filters = posts_by_filter
+        let routes = posts_by_filter
             .or(post_by_id)
             .or(create_post)
             .or(update_post)
             .recover(error_handler);
 
-        warp::serve(filters).run(addr).await;
+        warp::serve(routes).run(addr).await;
     }
 }
