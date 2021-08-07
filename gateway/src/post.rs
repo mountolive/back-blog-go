@@ -34,7 +34,7 @@ impl fmt::Display for MutatorError {
 }
 
 /// DTO with the data needed for creating a post
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct CreatePost {
     pub creator: String,
     pub title: String,
@@ -43,9 +43,8 @@ pub struct CreatePost {
 }
 
 /// DTO with the data needed for updating a post
-#[derive(Serialize)]
+#[derive(Deserialize)]
 pub struct UpdatePost {
-    pub id: String,
     pub title: String,
     pub content: String,
     pub tags: Vec<String>,
@@ -77,9 +76,18 @@ impl PostCreator {
     }
 }
 
+/// DTO hold all the required data to update a post against the remote post service
+#[derive(Serialize)]
+pub struct FullUpdatePost {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub tags: Vec<String>,
+}
+
 /// A service for updating a post
 pub struct PostUpdater {
-    pub client: Box<dyn MutatorClient<UpdatePost>>,
+    pub client: Box<dyn MutatorClient<FullUpdatePost>>,
 }
 
 // Marking it as "thread-safe"
@@ -88,8 +96,14 @@ unsafe impl Sync for PostUpdater {}
 
 impl PostUpdater {
     /// Updates a post with the corresponding data passed
-    pub fn update(&self, post: UpdatePost) -> Result<(), MutatorError> {
-        match self.client.send(post) {
+    pub fn update(&self, id: &str, post: UpdatePost) -> Result<(), MutatorError> {
+        let update_post = FullUpdatePost {
+            id: id.to_string(),
+            title: post.title,
+            content: post.content,
+            tags: post.tags,
+        };
+        match self.client.send(update_post) {
             Ok(()) => Ok(()),
             Err(e) => Err(MutatorError {
                 message: format!("post update: {}", e.message),
@@ -197,8 +211,8 @@ mod test {
         }
     }
 
-    impl MutatorClient<UpdatePost> for MockClient {
-        fn send(&self, _: UpdatePost) -> Result<(), MutatorError> {
+    impl MutatorClient<FullUpdatePost> for MockClient {
+        fn send(&self, _: FullUpdatePost) -> Result<(), MutatorError> {
             if self.errored {
                 return Err(MutatorError {
                     message: String::from("another whatever error"),
@@ -210,7 +224,6 @@ mod test {
 
     fn update_post() -> UpdatePost {
         UpdatePost {
-            id: String::from("some-id"),
             title: String::from("some-title"),
             content: String::from("some-content"),
             tags: vec![String::from("amazing"), String::from("superb")],
@@ -222,7 +235,7 @@ mod test {
         let creator = PostUpdater {
             client: Box::new(MockClient { errored: true }),
         };
-        match creator.update(update_post()) {
+        match creator.update("some-id", update_post()) {
             Ok(()) => assert!(false, "shouldn't return Ok"),
             Err(_) => assert!(true, "should return Err"),
         }
@@ -233,7 +246,7 @@ mod test {
         let creator = PostUpdater {
             client: Box::new(MockClient { errored: false }),
         };
-        match creator.update(update_post()) {
+        match creator.update("other-id", update_post()) {
             Ok(()) => assert!(true, "should return Ok"),
             Err(e) => assert!(false, "shouldn't return Err {}", e),
         }

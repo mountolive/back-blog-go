@@ -1,4 +1,4 @@
-use crate::post::{CreatePost, MutatorClient, MutatorError, UpdatePost};
+use crate::post::{CreatePost, FullUpdatePost, MutatorClient, MutatorError};
 use nats;
 use serde::Serialize;
 use std::fmt;
@@ -80,9 +80,9 @@ impl MutatorClient<CreatePost> for Client {
     }
 }
 
-impl MutatorClient<UpdatePost> for Client {
+impl MutatorClient<FullUpdatePost> for Client {
     /// Implements the send method for post updating
-    fn send(&self, payload: UpdatePost) -> Result<(), MutatorError> {
+    fn send(&self, payload: FullUpdatePost) -> Result<(), MutatorError> {
         self.send(payload)
     }
 }
