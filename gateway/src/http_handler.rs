@@ -59,7 +59,6 @@ async fn error_handler(rej: Rejection) -> Result<impl Reply, Infallible> {
 
     if let Some(e) = rej.find::<HandlerError>() {
         err.message = format!("external error: {}", e.message);
-        return Ok(warp::reply::with_status(warp::reply::json(&err), code));
     }
 
     Ok(warp::reply::with_status(warp::reply::json(&err), code))
