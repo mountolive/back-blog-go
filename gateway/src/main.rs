@@ -1,4 +1,5 @@
 mod auth;
+mod grpc_authenticator;
 mod http_handler;
 mod mem_storage;
 mod nats_client;

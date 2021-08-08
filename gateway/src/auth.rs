@@ -109,7 +109,7 @@ impl fmt::Display for TokenStoreError {
 /// Wrapping error for authetication and authorization actions
 #[derive(Debug)]
 pub struct AuthenticationError {
-    message: String,
+    pub message: String,
 }
 
 impl std::error::Error for AuthenticationError {

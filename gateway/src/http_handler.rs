@@ -3,7 +3,7 @@ use crate::post::{
     CreatePost, Filter as PostFilter, PostCreator, PostUpdater, ReadClient, UpdatePost,
 };
 use crate::post_reader::PostReader;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -28,38 +28,38 @@ struct APIError {
 /// Fall-thru function to handle rejections
 async fn error_handler(rej: Rejection) -> Result<impl Reply, Infallible> {
     let mut code = StatusCode::INTERNAL_SERVER_ERROR;
-    let mut err = APIError {
-        code: code.as_u16(),
-        message: "unexpected error".to_string(),
-    };
+    let mut message = "unexpected error".to_string();
 
     if rej.is_not_found() {
         code = StatusCode::NOT_FOUND;
-        err = APIError {
-            code: code.as_u16(),
-            message: "not found".to_string(),
-        };
-        return Ok(warp::reply::with_status(warp::reply::json(&err), code));
+        message = "not found".to_string();
+    }
+
+    if let Some(_) = rej.find::<Unauthorized>() {
+        code = StatusCode::UNAUTHORIZED;
+        message = "naughty".to_string();
     }
 
     if let Some(e) = rej.find::<warp::filters::body::BodyDeserializeError>() {
         match e.source() {
             Some(cause) => {
-                err = APIError {
-                    code: StatusCode::BAD_REQUEST.as_u16(),
-                    message: cause.to_string(),
-                };
+                code = StatusCode::BAD_REQUEST;
+                message = cause.to_string();
             }
             None => {
-                err.message = "unknown serialization error".to_string();
+                message = "unknown serialization error".to_string();
             }
         }
-        return Ok(warp::reply::with_status(warp::reply::json(&err), code));
     }
 
     if let Some(e) = rej.find::<HandlerError>() {
-        err.message = format!("external error: {}", e.message);
+        message = format!("external error: {}", e.message);
     }
+
+    let err = APIError {
+        code: code.as_u16(),
+        message,
+    };
 
     Ok(warp::reply::with_status(warp::reply::json(&err), code))
 }
@@ -103,6 +103,19 @@ impl warp::Reply for EmptyResponse {
         }
     }
 }
+
+#[derive(Deserialize)]
+struct LoginDTO {
+    username: String,
+    password: String,
+}
+
+const TOKEN_PREFIX: &str = "Bearer ";
+
+#[derive(Debug)]
+struct Unauthorized;
+
+impl reject::Reject for Unauthorized {}
 
 impl HTTPHandler {
     fn posts(&self, filter: PostFilter) -> JSONResponse {
@@ -153,8 +166,41 @@ impl HTTPHandler {
         }
     }
 
+    fn login(&self, usr: &str, pass: &str) -> JSONResponse {
+        match self.auth.login(usr, pass) {
+            Ok(token) => JSONResponse(Ok(warp::reply::with_status(
+                warp::reply::json(&token),
+                StatusCode::OK,
+            ))),
+            Err(err) => JSONResponse(Err(HandlerError {
+                message: err.message,
+            })),
+        }
+    }
+
+    fn authorize(&'static self) -> impl Filter<Extract = ((),), Error = Rejection> + Copy {
+        warp::header::<String>("Authorization").and_then(move |token: String| async move {
+            match self.auth.authorize(token.trim_start_matches(TOKEN_PREFIX)) {
+                Ok(auth) => {
+                    if !auth {
+                        return Err(reject::custom(Unauthorized));
+                    }
+                    Ok(())
+                }
+                Err(err) => Err(reject::custom(HandlerError {
+                    message: err.message,
+                })),
+            }
+        })
+    }
+
     /// Starts the server
     pub async fn start(&'static self, addr: SocketAddr) {
+        let login = warp::path!("user")
+            .and(warp::post())
+            .and(warp::body::json())
+            .map(move |creds: LoginDTO| self.login(&creds.username[..], &creds.password[..]));
+
         let posts_by_filter = warp::path!("posts")
             .and(warp::get())
             .and(warp::query().map(move |filter: PostFilter| self.posts(filter)));
@@ -165,17 +211,20 @@ impl HTTPHandler {
             .map(move |id: String| self.post(&id[..]));
 
         let create_post = warp::path!("posts")
+            .and(self.authorize())
             .and(warp::post())
             .and(warp::body::json())
-            .map(move |create: CreatePost| self.create_post(create));
+            .map(move |_: (), create: CreatePost| self.create_post(create));
 
         let update_post = warp::path!("posts")
+            .and(self.authorize())
             .and(warp::put())
             .and(warp::path::param::<String>())
             .and(warp::body::json())
-            .map(move |id: String, update: UpdatePost| self.update_post(id, update));
+            .map(move |_: (), id: String, update: UpdatePost| self.update_post(id, update));
 
-        let routes = posts_by_filter
+        let routes = login
+            .or(posts_by_filter)
             .or(post_by_id)
             .or(create_post)
             .or(update_post)
