@@ -45,14 +45,14 @@ func NewServer(repo usecase.Repository) Server {
 
 // APIError wraps the details of any error happened downstream to the http handler
 type APIError struct {
-	HTTPCode int         `json:"-"`
 	Error    DetailError `json:"error"`
+	HTTPCode int         `json:"-"`
 }
 
 // DetailError is self-described
 type DetailError struct {
-	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
 
 func newNotFoundError() APIError {

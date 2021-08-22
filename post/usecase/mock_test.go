@@ -16,7 +16,7 @@ func (m *mockStoreNotEmpty) Update(ctx context.Context, p *UpdatePostDto) (*Post
 }
 
 func (m *mockStoreNotEmpty) Filter(ctx context.Context, p *GeneralFilter) ([]*Post, error) {
-	return []*Post{&Post{Creator: "test", Content: "test", Tags: []string{p.Tag}}}, nil
+	return []*Post{{Creator: "test", Content: "test", Tags: []string{p.Tag}}}, nil
 }
 
 func (m *mockStoreNotEmpty) ReadOne(ctx context.Context, id string) (*Post, error) {

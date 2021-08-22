@@ -5,8 +5,9 @@ package httpx_test
 
 import (
 	"context"
-	"github.com/mountolive/back-blog-go/post/usecase"
 	"sync"
+
+	"github.com/mountolive/back-blog-go/post/usecase"
 )
 
 // Ensure, that RepositoryMock does implement usecase.Repository.

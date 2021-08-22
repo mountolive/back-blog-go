@@ -61,7 +61,7 @@ func TestFilterByTag(t *testing.T) {
 	})
 
 	expectedPosts := []*usecase.Post{
-		&usecase.Post{
+		{
 			Id:      "some-id",
 			Content: "some content",
 			Creator: "some creator",
@@ -135,7 +135,7 @@ func TestFilterByDateRange(t *testing.T) {
 	})
 
 	expectedPosts := []*usecase.Post{
-		&usecase.Post{
+		{
 			Id:      "some-id",
 			Content: "some content",
 			Creator: "some creator",

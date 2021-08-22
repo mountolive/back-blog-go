@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/mountolive/back-blog-go/post/broker"
+
 	"github.com/mountolive/back-blog-go/post/command"
 	"github.com/mountolive/back-blog-go/post/eventbus"
 	"github.com/mountolive/back-blog-go/post/httpx"

@@ -6,18 +6,21 @@ package transport
 import (
 	context "context"
 	fmt "fmt"
+	math "math"
+
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -48,15 +51,19 @@ func (*UserResponse) Descriptor() ([]byte, []int) {
 func (m *UserResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserResponse.Unmarshal(m, b)
 }
+
 func (m *UserResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_UserResponse.Marshal(b, m, deterministic)
 }
+
 func (m *UserResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UserResponse.Merge(m, src)
 }
+
 func (m *UserResponse) XXX_Size() int {
 	return xxx_messageInfo_UserResponse.Size(m)
 }
+
 func (m *UserResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_UserResponse.DiscardUnknown(m)
 }
@@ -130,15 +137,19 @@ func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
 func (m *ChangePasswordResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChangePasswordResponse.Unmarshal(m, b)
 }
+
 func (m *ChangePasswordResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ChangePasswordResponse.Marshal(b, m, deterministic)
 }
+
 func (m *ChangePasswordResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ChangePasswordResponse.Merge(m, src)
 }
+
 func (m *ChangePasswordResponse) XXX_Size() int {
 	return xxx_messageInfo_ChangePasswordResponse.Size(m)
 }
+
 func (m *ChangePasswordResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_ChangePasswordResponse.DiscardUnknown(m)
 }
@@ -174,15 +185,19 @@ func (*CreateUserRequest) Descriptor() ([]byte, []int) {
 func (m *CreateUserRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateUserRequest.Unmarshal(m, b)
 }
+
 func (m *CreateUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CreateUserRequest.Marshal(b, m, deterministic)
 }
+
 func (m *CreateUserRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_CreateUserRequest.Merge(m, src)
 }
+
 func (m *CreateUserRequest) XXX_Size() int {
 	return xxx_messageInfo_CreateUserRequest.Size(m)
 }
+
 func (m *CreateUserRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_CreateUserRequest.DiscardUnknown(m)
 }
@@ -252,15 +267,19 @@ func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
 func (m *UpdateUserRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateUserRequest.Unmarshal(m, b)
 }
+
 func (m *UpdateUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_UpdateUserRequest.Marshal(b, m, deterministic)
 }
+
 func (m *UpdateUserRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UpdateUserRequest.Merge(m, src)
 }
+
 func (m *UpdateUserRequest) XXX_Size() int {
 	return xxx_messageInfo_UpdateUserRequest.Size(m)
 }
+
 func (m *UpdateUserRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_UpdateUserRequest.DiscardUnknown(m)
 }
@@ -323,15 +342,19 @@ func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
 func (m *ChangePasswordRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChangePasswordRequest.Unmarshal(m, b)
 }
+
 func (m *ChangePasswordRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ChangePasswordRequest.Marshal(b, m, deterministic)
 }
+
 func (m *ChangePasswordRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ChangePasswordRequest.Merge(m, src)
 }
+
 func (m *ChangePasswordRequest) XXX_Size() int {
 	return xxx_messageInfo_ChangePasswordRequest.Size(m)
 }
+
 func (m *ChangePasswordRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_ChangePasswordRequest.DiscardUnknown(m)
 }
@@ -390,15 +413,19 @@ func (*CheckUserRequest) Descriptor() ([]byte, []int) {
 func (m *CheckUserRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckUserRequest.Unmarshal(m, b)
 }
+
 func (m *CheckUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CheckUserRequest.Marshal(b, m, deterministic)
 }
+
 func (m *CheckUserRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_CheckUserRequest.Merge(m, src)
 }
+
 func (m *CheckUserRequest) XXX_Size() int {
 	return xxx_messageInfo_CheckUserRequest.Size(m)
 }
+
 func (m *CheckUserRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_CheckUserRequest.DiscardUnknown(m)
 }
@@ -459,8 +486,10 @@ var fileDescriptor_6fa1ee495e6d9f92 = []byte{
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
+var (
+	_ context.Context
+	_ grpc.ClientConnInterface
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -529,18 +558,20 @@ type UserServer interface {
 }
 
 // UnimplementedUserServer can be embedded to have forward compatible implementations.
-type UnimplementedUserServer struct {
-}
+type UnimplementedUserServer struct{}
 
 func (*UnimplementedUserServer) Create(ctx context.Context, req *CreateUserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
+
 func (*UnimplementedUserServer) Update(ctx context.Context, req *UpdateUserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
+
 func (*UnimplementedUserServer) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
 }
+
 func (*UnimplementedUserServer) CheckUser(ctx context.Context, req *CheckUserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUser not implemented")
 }

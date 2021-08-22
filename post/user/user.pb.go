@@ -6,18 +6,21 @@ package user
 import (
 	context "context"
 	fmt "fmt"
+	math "math"
+
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -48,15 +51,19 @@ func (*UserResponse) Descriptor() ([]byte, []int) {
 func (m *UserResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UserResponse.Unmarshal(m, b)
 }
+
 func (m *UserResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_UserResponse.Marshal(b, m, deterministic)
 }
+
 func (m *UserResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UserResponse.Merge(m, src)
 }
+
 func (m *UserResponse) XXX_Size() int {
 	return xxx_messageInfo_UserResponse.Size(m)
 }
+
 func (m *UserResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_UserResponse.DiscardUnknown(m)
 }
@@ -129,15 +136,19 @@ func (*CheckUserRequest) Descriptor() ([]byte, []int) {
 func (m *CheckUserRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckUserRequest.Unmarshal(m, b)
 }
+
 func (m *CheckUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CheckUserRequest.Marshal(b, m, deterministic)
 }
+
 func (m *CheckUserRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_CheckUserRequest.Merge(m, src)
 }
+
 func (m *CheckUserRequest) XXX_Size() int {
 	return xxx_messageInfo_CheckUserRequest.Size(m)
 }
+
 func (m *CheckUserRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_CheckUserRequest.DiscardUnknown(m)
 }
@@ -182,8 +193,10 @@ var fileDescriptor_ed89022014131a74 = []byte{
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
+var (
+	_ context.Context
+	_ grpc.ClientConnInterface
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -219,8 +232,7 @@ type UserServer interface {
 }
 
 // UnimplementedUserServer can be embedded to have forward compatible implementations.
-type UnimplementedUserServer struct {
-}
+type UnimplementedUserServer struct{}
 
 func (*UnimplementedUserServer) CheckUser(ctx context.Context, req *CheckUserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUser not implemented")
