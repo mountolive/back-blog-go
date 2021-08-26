@@ -9,13 +9,13 @@ import (
 )
 
 type User struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
 	Id        string
 	Email     string
 	Username  string
 	FirstName string
 	LastName  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
 type CreateUserDto struct {
@@ -248,5 +248,5 @@ func (r *UserRepository) validatePasswords(password, repeatedPassword string) er
 
 // TODO Remove logErrorAndWrap function as it's unnecessary, users
 func logErrorAndWrap(err error, msg string) error {
-	return fmt.Errorf("%s: %w \n", msg, err)
+	return fmt.Errorf("%s: %w", msg, err)
 }

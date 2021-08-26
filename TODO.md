@@ -1,5 +1,0 @@
-- Implement API gateway
-- Infra wiring: docker-compose for local development
-- _prod_ config
-- Add more tests to post.EventBus.Resolve
-- Rename *Dto to DTO

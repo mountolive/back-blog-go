@@ -18,3 +18,9 @@ If using ssh `insteadOf` for global `.gitconfig`, make sure to:
 eval `ssh-agent -s`
 ssh-add
 ```
+
+### Requirements
+
+- Go (>1.15)
+- Rust (>1.54)
+- Protoc (`sudo apt install -y protobuf-compiler`, if using `apt`)

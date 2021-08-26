@@ -1,0 +1,12 @@
+syntax = "proto3";
+package user_transport;
+
+import "user_response.proto";
+
+service UserChecker {
+ rpc CheckUser (CheckUserRequest) returns (UserResponse) {}
+}
+
+message CheckUserRequest {
+  string login = 1;
+}

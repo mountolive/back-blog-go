@@ -1,0 +1,16 @@
+syntax = "proto3";
+package user_transport;
+
+import "user_response.proto";
+
+service UserUpdater {
+  rpc Update (UpdateUserRequest) returns (UserResponse) {}
+}
+
+message UpdateUserRequest {
+	string email            = 1;
+	string username         = 2;
+	string firstName        = 3;
+	string lastName         = 4;
+	string id               = 5;
+}

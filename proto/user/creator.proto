@@ -1,0 +1,17 @@
+syntax = "proto3";
+package user_transport;
+
+import "user_response.proto";
+
+service UserCreator {
+  rpc Create (CreateUserRequest) returns (UserResponse) {}
+}
+
+message CreateUserRequest {
+	string email            = 1;
+	string username         = 2;
+	string password         = 3;
+	string repeatedPassword = 4;
+	string firstName        = 5;
+	string lastName         = 6;
+}

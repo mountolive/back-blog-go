@@ -1,0 +1,14 @@
+syntax = "proto3";
+package user_transport;
+
+import "google/protobuf/timestamp.proto";
+
+message UserResponse {
+	string id                           = 1;
+	string email                        = 2;
+	string username                     = 3;
+	string firstName                    = 4;
+	string lastName                     = 5;
+	google.protobuf.Timestamp createdAt = 6;
+	google.protobuf.Timestamp updatedAt = 7;
+}

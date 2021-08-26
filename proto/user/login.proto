@@ -1,0 +1,16 @@
+syntax = "proto3";
+package user_transport;
+
+service Login {
+  rpc Login (LoginRequest) returns (LoginResponse) {}
+}
+
+// Empty response for ChangePassword
+message LoginResponse {
+	bool success = 1;
+}
+
+message LoginRequest {
+  string login = 1;
+	string password = 2;
+}
