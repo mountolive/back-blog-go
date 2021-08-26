@@ -1,11 +1,11 @@
 #! /bin/bash
 
-cd ../
+BASE_DIR="user"
 
-for dir in */; do
-  cd "$dir"
-  for i in `find . -name "*.proto" -type f`; do
-    protoc -I=. --go_out=plugins=grpc:. ./"$i"
-  done
-  cd ..
-done
+PKG_DIR="$(pwd)/$BASE_DIR"
+
+mkdir -p $PKG_DIR
+
+cd ../proto/user
+
+protoc -I=. --go-grpc_out="$PKG_DIR" checker.proto

@@ -18,6 +18,7 @@ import (
 	"github.com/mountolive/back-blog-go/post/sanitizer"
 	"github.com/mountolive/back-blog-go/post/usecase"
 	"github.com/mountolive/back-blog-go/post/user"
+	"github.com/mountolive/back-blog-go/post/user/transport"
 	"google.golang.org/grpc"
 )
 
@@ -53,7 +54,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("posts gRPC conn: %v", err)
 	}
-	client := user.NewUserClient(gRPCConn)
+	client := transport.NewUserCheckerClient(gRPCConn)
 	checker := user.NewGRPCUserChecker(client)
 	repo := &usecase.PostRepository{
 		Store:     store,

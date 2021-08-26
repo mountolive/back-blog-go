@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/mountolive/back-blog-go/post/usecase"
+	"github.com/mountolive/back-blog-go/post/user/transport"
 )
 
 // TODO Add test suite for GRPCUserChecker, posts service
 
 // GRPCUserChecker wraps a gRPC client to connect to users service
 type GRPCUserChecker struct {
-	client UserClient
+	client transport.UserCheckerClient
 }
 
 // NewGRPCUserChecker is a constructor
