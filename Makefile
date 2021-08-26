@@ -22,3 +22,5 @@ todo:
 proto-gen:
 	./scripts/proto_all.sh
 
+proto-compile:
+	./scripts/proto_compile.sh
