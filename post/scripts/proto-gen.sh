@@ -8,4 +8,4 @@ mkdir -p $PKG_DIR
 
 cd ../proto/user
 
-protoc -I=. --go-grpc_out="$PKG_DIR" checker.proto
+protoc -I=. --go-grpc_out="$PKG_DIR" user_response.proto checker.proto
