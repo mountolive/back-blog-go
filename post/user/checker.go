@@ -16,7 +16,7 @@ type GRPCUserChecker struct {
 }
 
 // NewGRPCUserChecker is a constructor
-func NewGRPCUserChecker(client UserClient) GRPCUserChecker {
+func NewGRPCUserChecker(client transport.UserCheckerClient) GRPCUserChecker {
 	return GRPCUserChecker{client}
 }
 
@@ -26,7 +26,7 @@ const errMsgCheckUser = "grpc client check user: %w"
 
 // CheckExistence implements CreatorChecker interface
 func (g GRPCUserChecker) CheckExistence(ctx context.Context, login string) (bool, error) {
-	req := &CheckUserRequest{Login: login}
+	req := &transport.CheckUserRequest{Login: login}
 	res, err := g.client.CheckUser(ctx, req)
 	if err != nil {
 		return false, fmt.Errorf(errMsgCheckUser, err)

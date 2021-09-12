@@ -18,15 +18,33 @@ const (
 
 // GRPCServer is self-described
 type GRPCServer struct {
+	UnimplementedUserCheckerServer
+	UnimplementedUserCreatorServer
+	UnimplementedUserUpdaterServer
+	UnimplementedPasswordChangerServer
+	UnimplementedLoginServer
 	repo usecase.Repository
 }
 
 // NewGRPCServer is a constructor
 func NewGRPCServer(repo usecase.Repository) GRPCServer {
-	return GRPCServer{repo}
+	return GRPCServer{
+		UnimplementedUserCheckerServer{},
+		UnimplementedUserCreatorServer{},
+		UnimplementedUserUpdaterServer{},
+		UnimplementedPasswordChangerServer{},
+		UnimplementedLoginServer{},
+		repo,
+	}
 }
 
-var _ UserServer = GRPCServer{}
+var (
+	_ UserCheckerServer     = GRPCServer{}
+	_ UserCreatorServer     = GRPCServer{}
+	_ UserUpdaterServer     = GRPCServer{}
+	_ PasswordChangerServer = GRPCServer{}
+	_ LoginServer           = GRPCServer{}
+)
 
 func newCreateUserDto(cu *CreateUserRequest) *usecase.CreateUserDto {
 	return &usecase.CreateUserDto{
@@ -57,7 +75,7 @@ func newUpdateUserDto(uu *UpdateUserRequest) *usecase.UpdateUserDto {
 	}
 }
 
-// Update implements the UserServer interface
+// Update implements the UserUpdaterServer interface
 func (g GRPCServer) Update(ctx context.Context, req *UpdateUserRequest) (*UserResponse, error) {
 	user, err := g.repo.UpdateUser(ctx, req.Id, newUpdateUserDto(req))
 	if err != nil {
@@ -76,7 +94,7 @@ func newChangePasswordDto(cp *ChangePasswordRequest) *usecase.ChangePasswordDto 
 	}
 }
 
-// ChangePassword implements the UserServer interface
+// ChangePassword implements the PasswordChangerServer interface
 func (g GRPCServer) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	err := g.repo.ChangePassword(ctx, newChangePasswordDto(req))
 	if err != nil {
@@ -85,13 +103,19 @@ func (g GRPCServer) ChangePassword(ctx context.Context, req *ChangePasswordReque
 	return &ChangePasswordResponse{Success: true}, nil
 }
 
-// CheckUser implements the UserServer interface
+// CheckUser implements the UserCheckerServer interface
 func (g GRPCServer) CheckUser(ctx context.Context, req *CheckUserRequest) (*UserResponse, error) {
 	user, err := g.repo.ReadUser(ctx, req.Login)
 	if err != nil {
 		return nil, fmt.Errorf(errMsgCheckUser, err)
 	}
 	return newUserResponse(user), nil
+}
+
+// Login implements the LoginServer interface
+func (g GRPCServer) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
+	// TODO: Implement Login method in users' repo and then in GRPCServer
+	return nil, nil
 }
 
 func newUserResponse(u *usecase.User) *UserResponse {
