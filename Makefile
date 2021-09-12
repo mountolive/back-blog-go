@@ -24,3 +24,8 @@ proto-gen:
 
 proto-compile:
 	./scripts/proto_compile.sh
+
+tidy:
+	cd user && go mod tidy
+	cd ..
+	cd post && go mod tidy
