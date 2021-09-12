@@ -43,6 +43,9 @@ func TestUserRepository(t *testing.T) {
 	genericErrMsg := "Got value: %v, Expected: %v"
 	happyPathStore := &happyPathUserStoreMock{}
 	erroredStore := &erroredUserStoreMock{}
+	t.Run("Login", func(t *testing.T) {
+		// TODO Add unit tests for Login method, UserRepository
+	})
 	t.Run("Change Password", func(t *testing.T) {
 		trueValidator := &trueValidator{}
 		correctChangePassword := &ChangePasswordDto{

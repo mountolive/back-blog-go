@@ -14,6 +14,7 @@ const (
 	errMsgUpdateUser     = "grpc update user: %w"
 	errMsgChangePassword = "grpc change password from user: %w"
 	errMsgCheckUser      = "grpc check user: %w"
+	errMsgLogin          = "grpc login from user: %w"
 )
 
 // GRPCServer is self-described
@@ -114,8 +115,18 @@ func (g GRPCServer) CheckUser(ctx context.Context, req *CheckUserRequest) (*User
 
 // Login implements the LoginServer interface
 func (g GRPCServer) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
-	// TODO: Implement Login method in users' repo and then in GRPCServer
-	return nil, nil
+	ok, err := g.repo.Login(
+		ctx,
+		usecase.LoginDTO{
+			Email:    req.Login,
+			Username: req.Login,
+			Password: req.Password,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf(errMsgLogin, err)
+	}
+	return &LoginResponse{Success: ok}, nil
 }
 
 func newUserResponse(u *usecase.User) *UserResponse {

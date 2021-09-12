@@ -53,6 +53,12 @@ type ByUsernameOrEmail struct {
 	Email string
 }
 
+type LoginDTO struct {
+	Email,
+	Username,
+	Password string
+}
+
 // Common errors
 var (
 	EmailOrUsernameAlreadyInUseError = errors.New(
@@ -71,6 +77,7 @@ var (
 		"The context of the operation was canceled")
 	CorruptedStoreError = errors.New(
 		"The UserStore used is returning inconsistent results")
+	ErrCredentialsDontMatch = errors.New("credentials passed don't match")
 )
 
 const unknownErrorInStore = "Found reported from store: %s and %s, but wrong dto returned"
@@ -108,12 +115,14 @@ type UserValidator interface {
 	MatchValidator
 }
 
+// TODO Split Repository interface by usecase, user service
 // Repository defines the basic usecases for the users' domain
 type Repository interface {
 	ReadUser(ctx context.Context, loginCred string) (*User, error)
 	ChangePassword(ctx context.Context, changePass *ChangePasswordDto) error
 	CreateUser(ctx context.Context, user *CreateUserDto) (*User, error)
 	UpdateUser(ctx context.Context, id string, user *UpdateUserDto) (*User, error)
+	Login(ctx context.Context, login LoginDTO) (bool, error)
 }
 
 // Basic repository struct. Store is used for persitance and Validator
@@ -124,6 +133,27 @@ type UserRepository struct {
 }
 
 var _ Repository = &UserRepository{}
+
+const errMsgLoginRepo = "users repository login: %w"
+
+// Login checks whether the login credentials passed match for the user
+func (r *UserRepository) Login(ctx context.Context, login LoginDTO) (bool, error) {
+	err := r.Store.CheckIfCorrectPassword(
+		ctx,
+		&CheckUserAndPasswordDto{
+			Email:    login.Email,
+			Username: login.Username,
+			Password: login.Password,
+		},
+	)
+	if err != nil {
+		if errors.Is(err, ErrCredentialsDontMatch) {
+			return false, nil
+		}
+		return false, fmt.Errorf(errMsgLoginRepo, err)
+	}
+	return true, nil
+}
 
 // Reads an user either by her Username or by her Email
 func (r *UserRepository) ReadUser(

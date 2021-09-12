@@ -198,6 +198,8 @@ func (p *PgStore) CheckIfCorrectPassword(ctx context.Context,
 		data.Password, p.userByEmail)
 }
 
+const errMsgCheckPasswordMatch = "user pg_store check password match: %w"
+
 func (p *PgStore) checkPasswordMatch(ctx context.Context,
 	emailOrUsername, password string,
 	retrieve func(context.Context, string) (*usecase.User, error)) error {
@@ -206,7 +208,7 @@ func (p *PgStore) checkPasswordMatch(ctx context.Context,
 		return wrapErrorInfo(err, "Error while checking password", "UserStore")
 	}
 	if user.Id == "" {
-		return fmt.Errorf("User was not found: %s", emailOrUsername)
+		return fmt.Errorf(errMsgCheckPasswordMatch, usecase.ErrCredentialsDontMatch)
 	}
 
 	var hashedPassword []byte
