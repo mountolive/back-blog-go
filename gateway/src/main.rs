@@ -73,15 +73,15 @@ async fn main() {
     .unwrap();
 
     // HTTP handler
-    let handler = HTTPHandler {
+    let forever_handler = Box::leak(Box::new(HTTPHandler {
         auth: auth_service,
         creator: post_creator,
         updater: post_updater,
         reader: post_reader,
-    };
+    }));
 
     let port = env::var("PORT").expect("port not set");
     let address =
         SocketAddr::from_str(&format!("127.0.0.1:{}", port)[..]).expect("malformed server address");
-    handler.start(address);
+    forever_handler.start(address).await;
 }

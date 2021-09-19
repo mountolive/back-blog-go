@@ -179,7 +179,7 @@ impl HTTPHandler {
         }
     }
 
-    fn authorize(&'static self) -> impl Filter<Extract = ((),), Error = Rejection> + Copy {
+    fn authorize(&self) -> impl Filter<Extract = ((),), Error = Rejection> + Copy + '_ {
         warp::header::<String>("Authorization").and_then(move |token: String| async move {
             match self.auth.authorize(token.trim_start_matches(TOKEN_PREFIX)) {
                 Ok(auth) => {
@@ -195,7 +195,6 @@ impl HTTPHandler {
         })
     }
 
-    /// Starts the server
     pub async fn start(&'static self, addr: SocketAddr) {
         let login = warp::path!("user")
             .and(warp::post())
