@@ -6,7 +6,6 @@ service Login {
   rpc Login (LoginRequest) returns (LoginResponse) {}
 }
 
-// Empty response for ChangePassword
 message LoginResponse {
 	bool success = 1;
 }

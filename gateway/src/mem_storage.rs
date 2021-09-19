@@ -28,7 +28,7 @@ impl fmt::Display for MemStorageError {
 
 /// Represents a token's storage in memory by means of a hash map
 pub struct MemStorageDriver {
-    data: RwLock<HashMap<String, String>>,
+    pub data: RwLock<HashMap<String, String>>,
 }
 
 impl StorageDriver for MemStorageDriver {

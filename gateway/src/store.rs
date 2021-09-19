@@ -13,7 +13,7 @@ pub trait StorageDriver {
 
 /// Wrapper for any tokens' storage engine
 pub struct JWTStore {
-    storage: dyn StorageDriver,
+    pub storage: Box<dyn StorageDriver>,
 }
 
 impl TokenStore for JWTStore {
