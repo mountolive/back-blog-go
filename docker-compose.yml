@@ -1,0 +1,81 @@
+version: "3"
+
+services:
+  nats: 
+    image: nats:2.5
+    expose:
+      - "${NATS_PORT}"
+    ports: 
+      - "8222:8222"
+      - "6222:6222"
+  postgresql_user:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${USERS_DB_USER}
+      POSTGRES_PASSWORD: ${USERS_DB_PASS}
+      POSTGRES_DB: ${USERS_DB_NAME}
+    expose:
+      - "${USERS_DB_PORT}"
+    ports:
+      - "${USERS_DB_HOST}:${USERS_DB_PORT}:${USERS_DB_PORT}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${USERS_DB_HOST}:${USERS_DB_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Logs all SQL statements
+    command: ["postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}"]
+  postgresql_post:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTS_DB_USER}
+      POSTGRES_PASSWORD: ${POSTS_DB_PASS}
+      POSTGRES_DB: ${POSTS_DB_NAME}
+    expose:
+      - "${POSTS_DB_PORT}"
+    ports:
+      - "${POSTS_DB_HOST}:${POSTS_DB_PORT}:${POSTS_DB_PORT}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${POSTS_DB_HOST}:${POSTS_DB_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}"]
+  users:
+    build:
+      context: ./user
+      dockerfile: Dockerfile
+    depends_on: 
+      - postgresql_user
+    environment:
+      - USERS_DB_USER
+      - USERS_DB_PASS
+      - USERS_DB_NAME
+      - USERS_DB_HOST
+      - USERS_DB_PORT
+      - USERS_PORT
+    ports:
+      - "${USERS_PORT}:${USERS_PORT}"
+  posts:
+    build:
+      context: ./post
+      dockerfile: Dockerfile
+    depends_on:
+      - postgresql_post
+      - nats
+      - users
+    environment:
+      - POSTS_DB_USER
+      - POSTS_DB_PASS
+      - POSTS_DB_NAME
+      - POSTS_DB_HOST
+      - POSTS_DB_PORT
+      - POSTS_NATS_HOST
+      - POSTS_NATS_PORT
+      - POSTS_USERS_GRPC_HOST
+      - POSTS_USERS_GRPC_PORT
+      - POSTS_NATS_SUBSCRIPTION_NAME
+      - POSTS_NATS_DEADLETTER_NAME
+      - POSTS_HTTP_PORT
+    ports:
+      - "${POSTS_HTTP_PORT}:${POSTS_HTTP_PORT}"

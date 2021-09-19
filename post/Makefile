@@ -5,3 +5,5 @@ test:
 mocks:
 	# TODO Add mocks to all packages and switch old mock implementations
 	moq -out httpx/mock_repository_test.go -pkg httpx_test usecase Repository
+build:
+	cd cmd/posts && go build .

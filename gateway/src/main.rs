@@ -80,7 +80,7 @@ async fn main() {
         reader: post_reader,
     }));
 
-    let port = env::var("PORT").expect("port not set");
+    let port = env::var("GATEWAY_PORT").expect("port not set");
     let address =
         SocketAddr::from_str(&format!("127.0.0.1:{}", port)[..]).expect("malformed server address");
     forever_handler.start(address).await;
