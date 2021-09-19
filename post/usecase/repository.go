@@ -14,9 +14,9 @@ type Post struct {
 	Creator   string    `json:"creator"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
-	Tags      []string  `json:"tags"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	Tags      []string  `json:"tags"`
 }
 
 // Dto for handling creation of Posts
@@ -93,14 +93,17 @@ type PostRepository struct {
 }
 
 // Common sentinel errors
-// TODO Fix naming convention on errors: avoid first uppercase letter
-// TODO Use patter Err* for errors' names
 var (
-	OperationCanceledError = errors.New("The context of the operation was canceled")
-	PostNotFoundError      = errors.New("The post requested was not found")
-	MissingIdError         = errors.New("Please pass the Id from the post to be updated")
-	UserNotFoundError      = errors.New("The creator user does not exist")
-	UserCheckError         = errors.New("Error trying to check for the user's existence")
+	// ErrOperationCanceled returned when the context is canceled
+	ErrOperationCanceled = errors.New("context of the operation was canceled")
+	// ErrPostNotFound is self-described
+	ErrPostNotFound = errors.New("post requested was not found")
+	// ErrMissingID returned when no ID was passed
+	ErrMissingID = errors.New("missing ID from the post to be updated")
+	// ErrUserNotFound is self-described
+	ErrUserNotFound = errors.New("creator user does not exist")
+	// ErrUserCheck returned when there's an error in the upstream auth service
+	ErrUserCheck = errors.New("check for user's existence")
 )
 
 // Persists and return a PostDto with the data passed
@@ -110,10 +113,10 @@ func (r *PostRepository) CreatePost(
 ) (*Post, error) {
 	exists, err := r.Checker.CheckExistence(ctx, post.Creator)
 	if err != nil {
-		return nil, logErrorAndWrap(UserCheckError, err.Error())
+		return nil, logErrorAndWrap(ErrUserCheck, err.Error())
 	}
 	if !exists {
-		return nil, logErrorAndWrap(UserNotFoundError,
+		return nil, logErrorAndWrap(ErrUserNotFound,
 			fmt.Sprintf("User %s not found", post.Creator))
 	}
 	post.Content = r.Sanitizer.SanitizeContent(post.Content)
@@ -127,7 +130,7 @@ func (r *PostRepository) UpdatePost(
 	updated *UpdatePostDto,
 ) (*Post, error) {
 	if updated.Id == "" {
-		return nil, logErrorAndWrap(MissingIdError, "UpdatePost")
+		return nil, logErrorAndWrap(ErrMissingID, "UpdatePost")
 	}
 	updated.Content = r.Sanitizer.SanitizeContent(updated.Content)
 	return r.Store.Update(ctx, updated)
@@ -140,7 +143,7 @@ func (r *PostRepository) GetPost(ctx context.Context, id string) (*Post, error) 
 		return nil, logErrorAndWrap(err, "GetPost error")
 	}
 	if post.Id == "" {
-		return nil, logErrorAndWrap(PostNotFoundError, fmt.Sprintf("ID: %s.", id))
+		return nil, logErrorAndWrap(ErrPostNotFound, fmt.Sprintf("ID: %s.", id))
 	}
 	return post, nil
 }
@@ -170,5 +173,5 @@ func (r *PostRepository) FilterByDateRange(
 
 // TODO Remove logErrorAndWrap function as it's unnecessary, posts
 func logErrorAndWrap(err error, msg string) error {
-	return fmt.Errorf("%s: %w \n", msg, err)
+	return fmt.Errorf("%s: %w", msg, err)
 }

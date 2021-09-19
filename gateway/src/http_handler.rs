@@ -1,3 +1,4 @@
+//! HTTP handlers' definitions
 use crate::auth::AuthService;
 use crate::post::{
     CreatePost, Filter as PostFilter, PostCreator, PostUpdater, ReadClient, UpdatePost,

@@ -24,7 +24,7 @@ func (t *trueValidator) ValidatePasswordMatch(password, newPassword string) erro
 type falseValidatorEmail struct{}
 
 func (f *falseValidatorEmail) ValidateEmail(email string) error {
-	return MalformedEmailError
+	return ErrMalformedEmail
 }
 
 func (f *falseValidatorEmail) ValidatePassword(password string) error {
@@ -43,7 +43,7 @@ func (f *falseValidatorPassword) ValidateEmail(email string) error {
 }
 
 func (f *falseValidatorPassword) ValidatePassword(password string) error {
-	return InvalidPasswordError
+	return ErrInvalidPassword
 }
 
 func (t *falseValidatorPassword) ValidatePasswordMatch(password, newPassword string) error {
@@ -62,7 +62,7 @@ func (f *falseValidatorPasswordsNotMatching) ValidatePassword(password string) e
 }
 
 func (t *falseValidatorPasswordsNotMatching) ValidatePasswordMatch(password, newPassword string) error {
-	return PasswordsDontMatchError
+	return ErrPasswordsDontMatch
 }
 
 // UserStore lame mock
@@ -124,7 +124,7 @@ func (m *erroredUserStoreMock) ReadOne(ctx context.Context, filter *ByUsernameOr
 }
 
 func (m *erroredUserStoreMock) CheckIfCorrectPassword(ctx context.Context, d *CheckUserAndPasswordDto) error {
-	return UserPasswordNotMatchingError
+	return ErrUserPasswordNotMatching
 }
 
 func (m *erroredUserStoreMock) UpdatePassword(c context.Context, d *ChangePasswordDto) error {

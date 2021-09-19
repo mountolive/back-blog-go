@@ -74,7 +74,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     erroredStore,
 				},
 				Dto:    correctChangePassword,
-				ExpErr: UserPasswordNotMatchingError,
+				ExpErr: ErrUserPasswordNotMatching,
 			},
 			{
 				Name:        "Not found user username",
@@ -84,7 +84,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     erroredStore,
 				},
 				Dto:    correctChangePassword,
-				ExpErr: UserPasswordNotMatchingError,
+				ExpErr: ErrUserPasswordNotMatching,
 			},
 			{
 				Name:        "Malformed email",
@@ -94,7 +94,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathStore,
 				},
 				Dto:    badEmailChangePassword,
-				ExpErr: MalformedEmailError,
+				ExpErr: ErrMalformedEmail,
 			},
 			{
 				Name:        "Not valid old password",
@@ -104,7 +104,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     erroredStore,
 				},
 				Dto:    correctChangePassword,
-				ExpErr: UserPasswordNotMatchingError,
+				ExpErr: ErrUserPasswordNotMatching,
 			},
 			{
 				Name:        "Not matching password",
@@ -114,7 +114,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathStore,
 				},
 				Dto:    notMatchingPasswords,
-				ExpErr: PasswordsDontMatchError,
+				ExpErr: ErrPasswordsDontMatch,
 			},
 			{
 				Name:        "Not valid new password",
@@ -124,7 +124,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathStore,
 				},
 				Dto:    correctChangePassword,
-				ExpErr: InvalidPasswordError,
+				ExpErr: ErrInvalidPassword,
 			},
 			{
 				Name:        "Valid password",
@@ -191,7 +191,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathUserStore,
 				},
 				Dto:    incorrectEmailDto,
-				ExpErr: MalformedEmailError,
+				ExpErr: ErrMalformedEmail,
 			},
 			{
 				Name:        "Repeated email or username",
@@ -201,7 +201,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     &happyPathUserStoreMock{regularDto.Email, regularDto.Username},
 				},
 				Dto:    regularDto,
-				ExpErr: EmailOrUsernameAlreadyInUseError,
+				ExpErr: ErrEmailOrUsernameAlreadyInUse,
 			},
 			{
 				Name:        "Invalid password",
@@ -211,7 +211,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathUserStore,
 				},
 				Dto:    incorrectPasswordDto,
-				ExpErr: InvalidPasswordError,
+				ExpErr: ErrInvalidPassword,
 			},
 			{
 				Name:        "Not matching passwords",
@@ -221,7 +221,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathStore,
 				},
 				Dto:    notMatchingPasswordDto,
-				ExpErr: PasswordsDontMatchError,
+				ExpErr: ErrPasswordsDontMatch,
 			},
 			{
 				Name:        "Correct create",
@@ -310,7 +310,7 @@ func TestUserRepository(t *testing.T) {
 					Store:     happyPathUserStore,
 				},
 				Dto:    incorrectEmailDto,
-				ExpErr: MalformedEmailError,
+				ExpErr: ErrMalformedEmail,
 			},
 			{
 				Name:        "Correct update",

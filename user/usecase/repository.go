@@ -61,22 +61,22 @@ type LoginDTO struct {
 
 // Common errors
 var (
-	EmailOrUsernameAlreadyInUseError = errors.New(
-		"The email or username passed are already in use")
-	UserNotFoundError = errors.New(
-		"The user was not found in the DB")
-	MalformedEmailError = errors.New(
-		"The email passed is invalid")
-	UserPasswordNotMatchingError = errors.New(
-		"Seems like user/password data doesn't match with DB record")
-	PasswordsDontMatchError = errors.New(
-		"Password and RepeatedPassword don't match")
-	InvalidPasswordError = errors.New(
-		"Password doesn't comply with expected structure")
-	OperationCanceledError = errors.New(
-		"The context of the operation was canceled")
-	CorruptedStoreError = errors.New(
-		"The UserStore used is returning inconsistent results")
+	ErrEmailOrUsernameAlreadyInUse = errors.New(
+		"email or username passed are already in use")
+	ErrUserNotFound = errors.New(
+		"user was not found in the DB")
+	ErrMalformedEmail = errors.New(
+		"email passed is invalid")
+	ErrUserPasswordNotMatching = errors.New(
+		"seems like user/password data doesn't match with DB record")
+	ErrPasswordsDontMatch = errors.New(
+		"password and repeatedPassword don't match")
+	ErrInvalidPassword = errors.New(
+		"password doesn't comply with expected structure")
+	ErrOperationCanceled = errors.New(
+		"context of the operation was canceled")
+	ErrCorruptedStore = errors.New(
+		"user' store used is returning inconsistent results")
 	ErrCredentialsDontMatch = errors.New("credentials passed don't match")
 )
 
@@ -211,10 +211,10 @@ func (r *UserRepository) CreateUser(
 	}
 	if found != nil {
 		if found.Username != user.Username && found.Email != user.Email {
-			return nil, logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
+			return nil, logErrorAndWrap(ErrCorruptedStore, fmt.Sprintf(unknownErrorInStore,
 				user.Email, user.Username))
 		}
-		return nil, logErrorAndWrap(EmailOrUsernameAlreadyInUseError, "Existing user")
+		return nil, logErrorAndWrap(ErrEmailOrUsernameAlreadyInUse, "Existing user")
 	}
 	err = r.validatePasswords(user.Password, user.RepeatedPassword)
 	if err != nil {
@@ -237,11 +237,11 @@ func (r *UserRepository) UpdateUser(
 	}
 	found, err := r.Store.ReadOne(ctx, &ByUsernameOrEmail{user.Username, user.Email})
 	if err != nil {
-		return nil, logErrorAndWrap(UserNotFoundError, "An error occurred on the UserStore, UpdateUser")
+		return nil, logErrorAndWrap(ErrUserNotFound, "An error occurred on the UserStore, UpdateUser")
 	}
 	if found != nil {
 		if found.Username != user.Username && found.Email != user.Email {
-			return nil, logErrorAndWrap(CorruptedStoreError, fmt.Sprintf(unknownErrorInStore,
+			return nil, logErrorAndWrap(ErrCorruptedStore, fmt.Sprintf(unknownErrorInStore,
 				user.Email, user.Username))
 		}
 	}

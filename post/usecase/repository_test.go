@@ -64,7 +64,7 @@ func TestPostRepository(t *testing.T) {
 				Name:        "User non-existent",
 				Description: "It should return a UserNotFoundError",
 				Dto:         testDto,
-				ExpErr:      UserNotFoundError,
+				ExpErr:      ErrUserNotFound,
 				Repo: &PostRepository{
 					Store:     &mockStoreNotEmpty{},
 					Sanitizer: &mockSanitizer{},
@@ -75,7 +75,7 @@ func TestPostRepository(t *testing.T) {
 				Name:        "Checker errored",
 				Description: "It should return a UserCheckError",
 				Dto:         testDto,
-				ExpErr:      UserCheckError,
+				ExpErr:      ErrUserCheck,
 				Repo: &PostRepository{
 					Store:     &mockStoreNotEmpty{},
 					Sanitizer: &mockSanitizer{},
@@ -171,7 +171,7 @@ func TestPostRepository(t *testing.T) {
 					Content: "some content",
 					Tags:    []string{"many tags... (sic)"},
 				},
-				ExpErr: MissingIdError,
+				ExpErr: ErrMissingID,
 				Repo:   repo,
 			},
 		}
