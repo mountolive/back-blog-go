@@ -23,6 +23,7 @@ type PgStore struct {
 }
 
 var (
+	// TODO Add documentation and rename post's store errors
 	ConnectionError        = errors.New("error occurred when connecting to the DB")
 	TableCreationError     = errors.New("error occurred when trying to create needed tables")
 	CreateTransactionError = errors.New("error occurred when trying to create transaction")

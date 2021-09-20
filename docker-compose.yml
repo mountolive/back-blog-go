@@ -1,11 +1,11 @@
 version: "3"
 
 services:
-  nats: 
+  nats:
     image: nats:2.5
     expose:
       - "${NATS_PORT}"
-    ports: 
+    ports:
       - "8222:8222"
       - "6222:6222"
   postgresql_user:
@@ -17,7 +17,7 @@ services:
     expose:
       - "${USERS_DB_PORT}"
     ports:
-      - "${USERS_DB_HOST}:${USERS_DB_PORT}:${USERS_DB_PORT}"
+      - "${USERS_DB_PORT}:${USERS_DB_PORT}"
     # Logs all SQL statements
     command: ["postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}"]
   postgresql_post:
@@ -29,13 +29,13 @@ services:
     expose:
       - "${POSTS_DB_PORT}"
     ports:
-      - "${POSTS_DB_HOST}:${POSTS_DB_PORT}:${POSTS_DB_PORT}"
+      - "${POSTS_DB_PORT}:${POSTS_DB_PORT}"
     command: ["postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}"]
   users:
     build:
       context: ./user
       dockerfile: Dockerfile
-    depends_on: 
+    depends_on:
       - postgresql_user
     environment:
       - USERS_DB_USER
@@ -73,3 +73,25 @@ services:
     ports:
       - "${POSTS_HTTP_PORT}:${POSTS_HTTP_PORT}"
     command: sh -c "sleep 10 && ./posts"
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    depends_on:
+      - nats
+      - users
+      - posts
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    environment:
+      - NATS_SERVER_USER
+      - NATS_SERVER_PASSWORD
+      - NATS_SERVER_SUBJECT
+      - NATS_SERVER_HOST
+      - NATS_SERVER_PORT
+      - USER_SERVICE_ADDRESS
+      - TOKEN_TTL
+      - TOKEN_SALT
+      - POST_REST_API_URL
+      - GATEWAY_PORT
+

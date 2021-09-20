@@ -29,8 +29,7 @@ func NewUserPgStore(ctx context.Context, url string) (*PgStore, error) {
 		return nil, wrapErrorInfo(ConnectionError, err.Error(), "user")
 	}
 	store := &PgStore{db}
-	err = store.createUserTable(ctx)
-	if err != nil {
+	if err := store.createUserTable(ctx); err != nil {
 		return nil, wrapErrorInfo(TableCreationError, err.Error(), "user")
 	}
 	return store, nil
@@ -80,7 +79,10 @@ func (p *PgStore) createUserTable(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Creates an User and returns it (UserDto)
@@ -106,7 +108,7 @@ func (p *PgStore) Create(ctx context.Context,
 	defer tx.Rollback(ctx)
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(data.Password), 10)
 	if err != nil {
-		return nil, fmt.Errorf("Error while trying to hash password: %s", err)
+		return nil, fmt.Errorf("error while trying to hash password: %s", err)
 	}
 	_, err = tx.Exec(ctx, statement, data.Email, string(hashedPass),
 		data.FirstName, data.LastName, data.Username)

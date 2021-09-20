@@ -1,7 +1,7 @@
 FROM golang:1.17.1-alpine3.14
 WORKDIR /root/
 COPY . .
-RUN apk add --update --no-cache make git curl
+RUN apk add --update --no-cache make curl
 
 RUN make build
 
