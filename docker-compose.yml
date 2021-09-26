@@ -1,4 +1,4 @@
-version: "3"
+version: "2.2"
 
 services:
   nats:
@@ -18,8 +18,12 @@ services:
       - "${USERS_DB_PORT}"
     ports:
       - "${USERS_DB_PORT}:${USERS_DB_PORT}"
-    # Logs all SQL statements
-    command: ["postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}"]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${USERS_DB_USER} -d ${USERS_DB_NAME} -p ${USERS_DB_PORT}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: [ "postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}" ]
   postgresql_post:
     image: postgres:13
     environment:
@@ -30,13 +34,19 @@ services:
       - "${POSTS_DB_PORT}"
     ports:
       - "${POSTS_DB_PORT}:${POSTS_DB_PORT}"
-    command: ["postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}"]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTS_DB_USER} -d ${POSTS_DB_NAME} -p ${POSTS_DB_PORT}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: [ "postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}" ]
   users:
     build:
       context: ./user
       dockerfile: Dockerfile
     depends_on:
-      - postgresql_user
+      postgresql_user:
+        condition: service_healthy
     environment:
       - USERS_DB_USER
       - USERS_DB_PASS
@@ -45,18 +55,18 @@ services:
       - USERS_DB_PORT
       - USERS_PORT
     ports:
-      - "${USERS_PORT}:${USERS_PORT}"
-    # TODO Remove harcoded sleep in docker-compose
-    # added because healthcheck doesn't work
-    command: sh -c "sleep 10 && ./users"
+    - "${USERS_PORT}:${USERS_PORT}"
   posts:
     build:
       context: ./post
       dockerfile: Dockerfile
     depends_on:
-      - postgresql_post
-      - nats
-      - users
+      postgresql_post:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      users:
+        condition: service_started
     environment:
       - POSTS_DB_USER
       - POSTS_DB_PASS
@@ -72,15 +82,17 @@ services:
       - POSTS_HTTP_PORT
     ports:
       - "${POSTS_HTTP_PORT}:${POSTS_HTTP_PORT}"
-    command: sh -c "sleep 10 && ./posts"
   gateway:
     build:
       context: ./gateway
       dockerfile: Dockerfile
     depends_on:
-      - nats
-      - users
-      - posts
+      nats:
+        condition: service_started
+      users:
+        condition: service_started
+      posts:
+        condition: service_started
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     environment:
