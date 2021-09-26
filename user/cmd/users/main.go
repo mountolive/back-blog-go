@@ -24,6 +24,7 @@ func main() {
 		<-shutdown
 		fmt.Println("shutting down the server, users")
 		cancel()
+		log.Fatalf("users server shutting down...")
 	}()
 	dbUser := os.Getenv("USERS_DB_USER")
 	dbPassword := os.Getenv("USERS_DB_PASS")
@@ -59,6 +60,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("users gRPC listener: %v", err)
 	}
+	fmt.Printf("users server starting at port: %s\n", serverPort)
 	if err := baseServer.Serve(listener); err != nil {
 		log.Fatalf("users gRPC server: %v", err)
 	}

@@ -28,8 +28,9 @@ func main() {
 		shutdown := make(chan os.Signal, 1)
 		signal.Notify(shutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		<-shutdown
-		fmt.Println("shutting down the server, posts")
+		fmt.Println("posts, signal received")
 		cancel()
+		log.Fatalf("posts server shutting down...")
 	}()
 	dbUser := os.Getenv("POSTS_DB_USER")
 	dbPassword := os.Getenv("POSTS_DB_PASS")

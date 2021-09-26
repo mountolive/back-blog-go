@@ -36,6 +36,7 @@ fn parse_nats_config() -> Config {
 async fn main() {
     // Setup authenticator
     let grpc_srv_addr = env::var("USER_SERVICE_ADDRESS").expect("user service address not set");
+
     let user_srv_addr = grpc_srv_addr
         .parse::<http::Uri>()
         .expect("malformed user service's address");
@@ -83,5 +84,8 @@ async fn main() {
     let port = env::var("GATEWAY_PORT").expect("port not set");
     let address =
         SocketAddr::from_str(&format!("127.0.0.1:{}", port)[..]).expect("malformed server address");
+
+    println!("starting gateway at port {}", port);
+
     forever_handler.start(address).await;
 }

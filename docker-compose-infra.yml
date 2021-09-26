@@ -1,0 +1,31 @@
+version: "2.2"
+
+services:
+  nats:
+    image: nats:2.5
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+      - "6222:6222"
+  postgresql_user:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${USERS_DB_USER}
+      POSTGRES_PASSWORD: ${USERS_DB_PASS}
+      POSTGRES_DB: ${USERS_DB_NAME}
+    expose:
+      - "${USERS_DB_PORT}"
+    ports:
+      - "${USERS_DB_PORT}:${USERS_DB_PORT}"
+    command: [ "postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}" ]
+  postgresql_post:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTS_DB_USER}
+      POSTGRES_PASSWORD: ${POSTS_DB_PASS}
+      POSTGRES_DB: ${POSTS_DB_NAME}
+    expose:
+      - "${POSTS_DB_PORT}"
+    ports:
+      - "${POSTS_DB_PORT}:${POSTS_DB_PORT}"
+    command: [ "postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}" ]
