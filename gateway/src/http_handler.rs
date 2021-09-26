@@ -59,7 +59,7 @@ async fn error_handler(rej: Rejection) -> Result<impl Reply, Infallible> {
 
     let err = APIError {
         code: code.as_u16(),
-        message,
+        message: format!("{}: {:?}", message, rej),
     };
 
     Ok(warp::reply::with_status(warp::reply::json(&err), code))
@@ -211,17 +211,19 @@ impl HTTPHandler {
             .map(move |id: String| self.post(&id[..]));
 
         let create_post = warp::path!("posts")
-            .and(self.authorize())
+            // TODO Uncomment authorize "middleware" (not working properly)
+            // .and(self.authorize())
             .and(warp::post())
             .and(warp::body::json())
-            .map(move |_: (), create: CreatePost| self.create_post(create));
+            .map(move |create: CreatePost| self.create_post(create));
 
         let update_post = warp::path!("posts")
-            .and(self.authorize())
+            // TODO Uncomment authorize "middleware" (not working properly)
+            // .and(self.authorize())
             .and(warp::put())
             .and(warp::path::param::<String>())
             .and(warp::body::json())
-            .map(move |_: (), id: String, update: UpdatePost| self.update_post(id, update));
+            .map(move |id: String, update: UpdatePost| self.update_post(id, update));
 
         let routes = login
             .or(posts_by_filter)

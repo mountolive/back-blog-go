@@ -3,7 +3,7 @@
 use crate::auth::{AuthenticationError, Authenticator};
 use crate::user::login_client::LoginClient;
 use crate::user::{LoginRequest, LoginResponse};
-use tokio;
+use futures::executor::block_on;
 
 /// GRPCAuthenticator gRPC authenticator implementation
 pub struct GRPCAuthenticator {
@@ -44,9 +44,8 @@ impl GRPCAuthenticator {
                 .await
         };
 
-        let runtime = tokio::runtime::Runtime::new().expect("unable to start runtime");
-
-        runtime.block_on(future_login)
+        // FIXME: This blocks forever
+        block_on(future_login)
     }
 }
 

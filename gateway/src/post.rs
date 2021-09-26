@@ -43,7 +43,7 @@ pub struct CreatePost {
 }
 
 /// DTO with the data needed for updating a post
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct UpdatePost {
     pub title: String,
     pub content: String,

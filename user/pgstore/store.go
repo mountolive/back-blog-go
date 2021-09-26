@@ -184,7 +184,7 @@ func (p *PgStore) UpdatePassword(ctx context.Context,
 func (p *PgStore) ReadOne(ctx context.Context,
 	query *usecase.ByUsernameOrEmail) (*usecase.User, error) {
 	if query.Email == "" {
-		return p.userByUsername(ctx, query.Username)
+		p.userByUsername(ctx, query.Username)
 	}
 	return p.userByEmail(ctx, query.Email)
 }
@@ -227,6 +227,9 @@ func (p *PgStore) userByEmail(ctx context.Context,
 	user := &usecase.User{}
 	err := rowToEntity(rawUser, user)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return user, nil
@@ -238,6 +241,9 @@ func (p *PgStore) userByUsername(ctx context.Context,
 	user := &usecase.User{}
 	err := rowToEntity(rawUser, user)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return user, nil

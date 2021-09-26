@@ -47,6 +47,20 @@ func main() {
 		Store:     store,
 		Validator: validator,
 	}
+	_, err = repo.CreateUser(
+		ctx,
+		&usecase.CreateUserDto{
+			Email:            os.Getenv("USERS_ADMIN_EMAIL"),
+			Username:         os.Getenv("USERS_ADMIN_USERNAME"),
+			Password:         os.Getenv("USERS_ADMIN_PASSWORD"),
+			RepeatedPassword: os.Getenv("USERS_ADMIN_PASSWORD"),
+			FirstName:        os.Getenv("USERS_ADMIN_FIRST_NAME"),
+			LastName:         os.Getenv("USERS_ADMIN_LAST_NAME"),
+		},
+	)
+	if err != nil {
+		log.Printf("unable to create admin: %v\n", err)
+	}
 	gRPCServer := transport.NewGRPCServer(repo)
 	baseServer := grpc.NewServer()
 	// Same gRPC server will resolve all usecases

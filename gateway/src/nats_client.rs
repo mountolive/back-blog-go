@@ -59,8 +59,10 @@ impl Client {
     }
 
     fn send<T: Serialize>(&self, payload: T) -> Result<(), MutatorError> {
-        match bincode::serialize(&payload) {
-            Ok(bytes) => match self.conn.publish(&self.config.subject[..], &bytes[..]) {
+        let payload_str = serde_json::to_string(&payload).unwrap();
+        match bincode::serialize(&payload_str) {
+            // TODO Ignoring first element as it's sent like 'D' (coming from bincode)
+            Ok(bytes) => match self.conn.publish(&self.config.subject[..], &bytes[1..]) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(MutatorError {
                     message: e.to_string(),
