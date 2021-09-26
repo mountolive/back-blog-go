@@ -1,3 +1,4 @@
+// Rename this file to build.rs to regenerate proto's code
 fn main() {
     tonic_build::configure()
         .build_server(false)

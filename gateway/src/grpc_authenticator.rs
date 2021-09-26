@@ -11,18 +11,9 @@ pub struct GRPCAuthenticator {
 }
 
 /// Creates a login client
-pub fn create_login_client(address: http::Uri) -> LoginClient<tonic::transport::Channel> {
-    let future_client = async move {
-        let client = create_grpc_login_client(address).await;
-        client
-    };
-
-    let runtime = tokio::runtime::Runtime::new().expect("unable to start runtime");
-
-    runtime.block_on(future_client)
-}
-
-async fn create_grpc_login_client(address: http::Uri) -> LoginClient<tonic::transport::Channel> {
+pub async fn create_grpc_login_client(
+    address: http::Uri,
+) -> LoginClient<tonic::transport::Channel> {
     let channel = tonic::transport::Channel::builder(address)
         .connect()
         .await

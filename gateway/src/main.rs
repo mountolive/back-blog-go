@@ -9,7 +9,7 @@ mod store;
 mod user;
 
 use auth::AuthService;
-use grpc_authenticator::{create_login_client, GRPCAuthenticator};
+use grpc_authenticator::{create_grpc_login_client, GRPCAuthenticator};
 use http_handler::HTTPHandler;
 use mem_storage::MemStorageDriver;
 use nats_client::{Client, Config};
@@ -32,14 +32,14 @@ fn parse_nats_config() -> Config {
     }
 }
 
-#[tokio::main(flavor = "multi_thread")]
+#[tokio::main]
 async fn main() {
     // Setup authenticator
     let grpc_srv_addr = env::var("USER_SERVICE_ADDRESS").expect("user service address not set");
     let user_srv_addr = grpc_srv_addr
         .parse::<http::Uri>()
         .expect("malformed user service's address");
-    let authenticator = GRPCAuthenticator::new(create_login_client(user_srv_addr));
+    let authenticator = GRPCAuthenticator::new(create_grpc_login_client(user_srv_addr).await);
 
     let storage_driver = MemStorageDriver {
         data: RwLock::new(HashMap::new()),
@@ -48,9 +48,9 @@ async fn main() {
         storage: Box::new(storage_driver),
     };
 
-    let env_ttl = env::var("TOKEN_TTL").expect("user service address not set");
+    let env_ttl = env::var("TOKEN_TTL").expect("token ttl not set");
     let ttl = env_ttl.parse::<u64>().expect("wrong ttl value set");
-    let secret = env::var("TOKEN_SALT").expect("user service address not set");
+    let secret = env::var("TOKEN_SALT").expect("token salt not set");
 
     let auth_service =
         AuthService::new(Box::new(authenticator), Box::new(store), ttl, &secret[..]).unwrap();

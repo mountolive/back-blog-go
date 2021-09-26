@@ -59,7 +59,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("users gRPC listener: %v", err)
 	}
-	fmt.Println("user service started")
 	if err := baseServer.Serve(listener); err != nil {
 		log.Fatalf("users gRPC server: %v", err)
 	}

@@ -125,7 +125,7 @@ func TestCreatePost(t *testing.T) {
 			checker:     &mockErroredChecker{errors.New("checker errored")},
 			store:       &mockStore{},
 			params:      correctParams,
-			expectedErr: usecase.UserCheckError,
+			expectedErr: usecase.ErrUserCheck,
 		},
 		{
 			name:        "Creator checker not found",
@@ -133,7 +133,7 @@ func TestCreatePost(t *testing.T) {
 			checker:     &mockFalseChecker{},
 			store:       &mockStore{},
 			params:      correctParams,
-			expectedErr: usecase.UserNotFoundError,
+			expectedErr: usecase.ErrUserNotFound,
 		},
 		{
 			name:        "Store Create error",
