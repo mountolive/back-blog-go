@@ -94,16 +94,9 @@ func (c CreatePost) Handle(ctx context.Context, params eventbus.Params) error {
 			NewErrWrongType("title", "string"),
 		)
 	}
-	var tags []string
-	_, ok = params[tagsKey]
-	if ok {
-		tags, ok = params[tagsKey].([]string)
-		if !ok {
-			return fmt.Errorf(
-				errCreatePostHandler,
-				NewErrWrongType("tags", "[]string"),
-			)
-		}
+	tags, err := extractTags(params)
+	if err != nil {
+		return fmt.Errorf(errCreatePostHandler, err)
 	}
 	createPost := &usecase.CreatePostDto{
 		Creator: creator,
@@ -111,7 +104,7 @@ func (c CreatePost) Handle(ctx context.Context, params eventbus.Params) error {
 		Title:   title,
 		Tags:    tags,
 	}
-	_, err := c.repo.CreatePost(ctx, createPost)
+	_, err = c.repo.CreatePost(ctx, createPost)
 	if err != nil {
 		return fmt.Errorf(errCreatePostHandler, err)
 	}
@@ -168,16 +161,9 @@ func (u UpdatePost) Handle(ctx context.Context, params eventbus.Params) error {
 			NewErrWrongType("title", "string"),
 		)
 	}
-	var tags []string
-	_, ok = params[tagsKey]
-	if ok {
-		tags, ok = params[tagsKey].([]string)
-		if !ok {
-			return fmt.Errorf(
-				errUpdatePostHandler,
-				NewErrWrongType("tags", "[]string"),
-			)
-		}
+	tags, err := extractTags(params)
+	if err != nil {
+		return fmt.Errorf(errUpdatePostHandler, err)
 	}
 	updatePost := &usecase.UpdatePostDto{
 		Id:      id,
@@ -185,9 +171,28 @@ func (u UpdatePost) Handle(ctx context.Context, params eventbus.Params) error {
 		Title:   title,
 		Tags:    tags,
 	}
-	_, err := u.repo.UpdatePost(ctx, updatePost)
+	_, err = u.repo.UpdatePost(ctx, updatePost)
 	if err != nil {
 		return fmt.Errorf(errUpdatePostHandler, err)
 	}
 	return nil
+}
+
+func extractTags(params map[string]interface{}) ([]string, error) {
+	var tags []string
+	_, ok := params[tagsKey]
+	if ok {
+		tagValues, ok := params[tagsKey].([]interface{})
+		if !ok {
+			return nil, NewErrWrongType("tags", "array")
+		}
+		for i, rawTag := range tagValues {
+			tag, ok := rawTag.(string)
+			if !ok {
+				return nil, NewErrWrongType(fmt.Sprintf("tag at %d", i), "string")
+			}
+			tags = append(tags, tag)
+		}
+	}
+	return tags, nil
 }

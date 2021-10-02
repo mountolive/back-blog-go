@@ -1,0 +1,5 @@
+curl -X POST \
+-H 'Content-type: application/json' \
+-d "{\"content\":\"something\",\"title\":\"title\",\"creator\":\"mountolive\", \"tags\":[]}" \
+"http://localhost:8003/posts"
+

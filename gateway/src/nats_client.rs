@@ -3,6 +3,41 @@ use nats;
 use serde::Serialize;
 use std::fmt;
 
+/// CreatePostEvent is self described
+#[derive(Serialize)]
+pub struct CreatePostEvent {
+    event_name: String,
+    #[serde(flatten)]
+    payload: CreatePost,
+}
+
+/// UpdatePostEvent is self described
+#[derive(Serialize)]
+pub struct UpdatePostEvent {
+    event_name: String,
+    #[serde(flatten)]
+    payload: FullUpdatePost,
+}
+
+impl CreatePostEvent {
+    /// Creates a CreatePostEvent with default event_name
+    fn new(payload: CreatePost) -> Self {
+        CreatePostEvent {
+            event_name: "posts.v1.create".to_string(),
+            payload,
+        }
+    }
+}
+impl UpdatePostEvent {
+    /// Creates an UpdatePostEvent with default event_name
+    fn new(payload: FullUpdatePost) -> Self {
+        UpdatePostEvent {
+            event_name: "posts.v1.update".to_string(),
+            payload,
+        }
+    }
+}
+
 /// Config encodes the necessary data for a NATS connection
 pub struct Config {
     pub user: String,
@@ -78,14 +113,16 @@ impl Client {
 impl MutatorClient<CreatePost> for Client {
     /// Implements the send method for post creation
     fn send(&self, payload: CreatePost) -> Result<(), MutatorError> {
-        self.send(payload)
+        let create_post = CreatePostEvent::new(payload);
+        self.send(create_post)
     }
 }
 
 impl MutatorClient<FullUpdatePost> for Client {
     /// Implements the send method for post updating
     fn send(&self, payload: FullUpdatePost) -> Result<(), MutatorError> {
-        self.send(payload)
+        let update_post = UpdatePostEvent::new(payload);
+        self.send(update_post)
     }
 }
 

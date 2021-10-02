@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -45,12 +46,13 @@ func NewEventBus() *EventBus {
 
 // Resolve passes an event and executes its corresponding CommandHandler
 func (e EventBus) Resolve(ctx context.Context, event Event) error {
-	eventData := make(map[string]interface{})
-	err := json.Unmarshal(event.Data(), &eventData)
+	decodedEvent := make(map[string]interface{})
+	eventData := strings.ReplaceAll(string(event.Data()), string('\x00'), "")
+	err := json.Unmarshal([]byte(eventData), &decodedEvent)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrUnmarshalingMessage, err)
 	}
-	nameResult, ok := eventData["event_name"]
+	nameResult, ok := decodedEvent["event_name"]
 	if !ok {
 		return ErrMissingNameParam
 	}
@@ -62,8 +64,8 @@ func (e EventBus) Resolve(ctx context.Context, event Event) error {
 	if !ok {
 		return ErrEventNotRegistered
 	}
-	delete(eventData, "event_name")
-	err = handler.Handle(ctx, eventData)
+	delete(decodedEvent, "event_name")
+	err = handler.Handle(ctx, decodedEvent)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrCommandHandler, err)
 	}
