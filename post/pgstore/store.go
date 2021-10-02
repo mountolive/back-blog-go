@@ -113,7 +113,7 @@ func (p *PgStore) Create(ctx context.Context,
 		return nil, wrapErrorInfo(ExecTransactionError, err.Error())
 	}
 
-	// TODO Post's read by Createor in Create's return is an open door for inconsistent results (write skew)
+	// TODO Post's read by Creator in Create's return is an open door for inconsistent results (write skew)
 	return p.getNewestByCreator(ctx, create.Creator), nil
 }
 

@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/mountolive/back-blog-go/user/usecase"
@@ -47,6 +48,13 @@ var (
 	_ LoginServer           = GRPCServer{}
 )
 
+var (
+	// ErrUserNotFound is self-described
+	ErrUserNotFound = errors.New("user not found")
+	// ErrUserNotRetrieved is an error indicating that a newly created user was not retrieved
+	ErrUserNotRetrieved = errors.New("couldn't retrieve created user")
+)
+
 func newCreateUserDto(cu *CreateUserRequest) *usecase.CreateUserDto {
 	return &usecase.CreateUserDto{
 		Email:            cu.Email,
@@ -63,6 +71,9 @@ func (g GRPCServer) Create(ctx context.Context, req *CreateUserRequest) (*UserRe
 	user, err := g.repo.CreateUser(ctx, newCreateUserDto(req))
 	if err != nil {
 		return nil, fmt.Errorf(errMsgCreateUser, err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf(errMsgCreateUser, ErrUserNotRetrieved)
 	}
 	return newUserResponse(user), nil
 }
@@ -81,6 +92,9 @@ func (g GRPCServer) Update(ctx context.Context, req *UpdateUserRequest) (*UserRe
 	user, err := g.repo.UpdateUser(ctx, req.Id, newUpdateUserDto(req))
 	if err != nil {
 		return nil, fmt.Errorf(errMsgUpdateUser, err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf(errMsgUpdateUser, ErrUserNotFound)
 	}
 	return newUserResponse(user), nil
 }
@@ -109,6 +123,9 @@ func (g GRPCServer) CheckUser(ctx context.Context, req *CheckUserRequest) (*User
 	user, err := g.repo.ReadUser(ctx, req.Login)
 	if err != nil {
 		return nil, fmt.Errorf(errMsgCheckUser, err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf(errMsgCheckUser, ErrUserNotFound)
 	}
 	return newUserResponse(user), nil
 }

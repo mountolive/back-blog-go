@@ -104,6 +104,8 @@ var (
 	ErrUserNotFound = errors.New("creator user does not exist")
 	// ErrUserCheck returned when there's an error in the upstream auth service
 	ErrUserCheck = errors.New("check for user's existence")
+	// ErrEmptyTags returned when tags passed is empty, on creation
+	ErrEmptyTags = errors.New("tags can't be empty")
 )
 
 // Persists and return a PostDto with the data passed
@@ -118,6 +120,9 @@ func (r *PostRepository) CreatePost(
 	if !exists {
 		return nil, logErrorAndWrap(ErrUserNotFound,
 			fmt.Sprintf("User %s not found", post.Creator))
+	}
+	if len(post.Tags) == 0 {
+		return nil, fmt.Errorf("create post: %w", ErrEmptyTags)
 	}
 	post.Content = r.Sanitizer.SanitizeContent(post.Content)
 	return r.Store.Create(ctx, post)

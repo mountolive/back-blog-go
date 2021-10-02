@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/mail"
 	"time"
 )
 
@@ -160,11 +161,10 @@ func (r *UserRepository) ReadUser(
 	ctx context.Context,
 	loginCred string,
 ) (*User, error) {
-	byUsernameOrEmail := &ByUsernameOrEmail{
-		Username: loginCred,
-		Email:    loginCred,
+	if _, err := mail.ParseAddress(loginCred); err != nil {
+		return r.Store.ReadOne(ctx, &ByUsernameOrEmail{Username: loginCred})
 	}
-	return r.Store.ReadOne(ctx, byUsernameOrEmail)
+	return r.Store.ReadOne(ctx, &ByUsernameOrEmail{Email: loginCred})
 }
 
 // Changes password and persists. Returns an error on validation or

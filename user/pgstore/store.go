@@ -184,7 +184,7 @@ func (p *PgStore) UpdatePassword(ctx context.Context,
 func (p *PgStore) ReadOne(ctx context.Context,
 	query *usecase.ByUsernameOrEmail) (*usecase.User, error) {
 	if query.Email == "" {
-		p.userByUsername(ctx, query.Username)
+		return p.userByUsername(ctx, query.Username)
 	}
 	return p.userByEmail(ctx, query.Email)
 }
