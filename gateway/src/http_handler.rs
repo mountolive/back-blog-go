@@ -205,9 +205,8 @@ impl HTTPHandler {
             .and(warp::get())
             .and(warp::query().map(move |filter: PostFilter| self.posts(filter)));
 
-        let post_by_id = warp::path!("posts")
+        let post_by_id = warp::path!("posts" / String)
             .and(warp::get())
-            .and(warp::path::param())
             .map(move |id: String| self.post(&id[..]));
 
         let create_post = warp::path!("posts")
@@ -217,11 +216,10 @@ impl HTTPHandler {
             .and(warp::body::json())
             .map(move |create: CreatePost| self.create_post(create));
 
-        let update_post = warp::path!("posts")
+        let update_post = warp::path!("posts" / String)
             // TODO Uncomment authorize "middleware" (not working properly)
             // .and(self.authorize())
             .and(warp::put())
-            .and(warp::path::param::<String>())
             .and(warp::body::json())
             .map(move |id: String, update: UpdatePost| self.update_post(id, update));
 
