@@ -2,10 +2,10 @@
 
 if [ $1 = "create" ];
 then
-	curl -X POST \
-	-H 'Content-type: application/json' \
-	-d "{\"content\":\"something\",\"title\":\"title\",\"creator\":\"mountolive\", \"tags\":[\"test\"]}" \
-	"http://localhost:8003/posts"
+  curl -X POST \
+  -H 'Content-type: application/json' \
+  -d "{\"content\":\"something\",\"title\":\"title\",\"creator\":\"mountolive\", \"tags\":[\"test\"]}" \
+  "http://localhost:8003/posts"
   exit $?
 fi
 
@@ -16,10 +16,10 @@ then
     echo "pass the id of a post to be updated"
     exit 1
   fi
-	curl -X PUT \
-	-H 'Content-type: application/json' \
-	-d "{\"content\":\"something-better\",\"title\":\"best-title\",\"creator\":\"mountolive\", \"tags\":[\"awesome\"]}" \
-	"http://localhost:8003/posts/${2}"
+  curl -X PUT \
+  -H 'Content-type: application/json' \
+  -d "{\"content\":\"something-better\",\"title\":\"best-title\",\"creator\":\"mountolive\", \"tags\":[\"awesome\"]}" \
+  "http://localhost:8003/posts/${2}"
   exit $?
 fi
 
@@ -30,7 +30,21 @@ then
     echo "pass the id of a post to be read"
     exit 1
   fi
-	curl "http://localhost:8003/posts/${2}"
+  curl "http://localhost:8003/posts/${2}"
+  exit $?
+fi
+
+if [ $1 = "login" ];
+then
+  if [ $# != 3 ];
+  then
+    echo "pass the test username and the test password"
+    exit 1
+  fi
+  curl -X POST \
+  -H 'Content-type: application/json' \
+  -d "{\"username\":\"${2}\",\"password\":\"${3}\"}" \
+  "http://localhost:8003/user"
   exit $?
 fi
 

@@ -12,7 +12,7 @@ pub struct Post {
     pub title: String,
     pub content: String,
     pub tags: Vec<String>,
-    pub created_at: SystemTime,
+    pub created_at: String,
 }
 
 /// Error associated to a create or update action regarding posts
@@ -153,13 +153,7 @@ pub struct PostSummary {
     pub creator: String,
     pub title: String,
     pub tags: Vec<String>,
-    pub created_at: SystemTime,
-}
-
-/// Read defines the contract for listing posts
-pub trait ReadClient {
-    fn posts(&self, filter: Filter) -> Result<Vec<PostSummary>, ReaderError>;
-    fn post(&self, id: &str) -> Result<Post, ReaderError>;
+    pub created_at: String,
 }
 
 mod test {

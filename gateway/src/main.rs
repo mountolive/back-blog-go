@@ -9,7 +9,7 @@ mod store;
 mod user;
 
 use auth::AuthService;
-use grpc_authenticator::{create_grpc_login_client, GRPCAuthenticator};
+use grpc_authenticator::create_grpc_login_client;
 use http_handler::HTTPHandler;
 use mem_storage::MemStorageDriver;
 use nats_client::{Client, Config};
@@ -40,7 +40,7 @@ async fn main() {
     let user_srv_addr = grpc_srv_addr
         .parse::<http::Uri>()
         .expect("malformed user service's address");
-    let authenticator = GRPCAuthenticator::new(create_grpc_login_client(user_srv_addr).await);
+    let authenticator = create_grpc_login_client(user_srv_addr).await;
 
     let storage_driver = MemStorageDriver {
         data: RwLock::new(HashMap::new()),
@@ -53,8 +53,7 @@ async fn main() {
     let ttl = env_ttl.parse::<u64>().expect("wrong ttl value set");
     let secret = env::var("TOKEN_SALT").expect("token salt not set");
 
-    let auth_service =
-        AuthService::new(Box::new(authenticator), Box::new(store), ttl, &secret[..]).unwrap();
+    let auth_service = AuthService::new(authenticator, Box::new(store), ttl, &secret[..]).unwrap();
 
     // Setup post creator and updater
     let nats_client_creator = Client::connect(parse_nats_config()).unwrap();

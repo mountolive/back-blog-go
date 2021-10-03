@@ -1,8 +1,6 @@
 //! HTTP handlers' definitions
 use crate::auth::AuthService;
-use crate::post::{
-    CreatePost, Filter as PostFilter, PostCreator, PostUpdater, ReadClient, UpdatePost,
-};
+use crate::post::{CreatePost, Filter as PostFilter, PostCreator, PostUpdater, UpdatePost};
 use crate::post_reader::PostReader;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -36,7 +34,7 @@ async fn error_handler(rej: Rejection) -> Result<impl Reply, Infallible> {
         message = "not found".to_string();
     }
 
-    if let Some(_) = rej.find::<Unauthorized>() {
+    if rej.find::<Unauthorized>().is_some() {
         code = StatusCode::UNAUTHORIZED;
         message = "naughty".to_string();
     }
@@ -119,8 +117,8 @@ struct Unauthorized;
 impl reject::Reject for Unauthorized {}
 
 impl HTTPHandler {
-    fn posts(&self, filter: PostFilter) -> JSONResponse {
-        match self.reader.posts(filter) {
+    async fn _posts(&self, filter: PostFilter) -> JSONResponse {
+        match self.reader.posts(filter).await {
             Ok(posts) => JSONResponse(Ok(warp::reply::with_status(
                 warp::reply::json(&posts),
                 StatusCode::OK,
@@ -131,8 +129,12 @@ impl HTTPHandler {
         }
     }
 
-    fn post(&self, id: &str) -> JSONResponse {
-        match self.reader.post(&id[..]) {
+    async fn posts(&self, filter: PostFilter) -> Result<impl warp::Reply, warp::Rejection> {
+        Ok(self._posts(filter).await)
+    }
+
+    async fn _post(&self, id: &str) -> JSONResponse {
+        match self.reader.post(id).await {
             Ok(post) => JSONResponse(Ok(warp::reply::with_status(
                 warp::reply::json(&post),
                 StatusCode::OK,
@@ -141,6 +143,10 @@ impl HTTPHandler {
                 message: err.message,
             })),
         }
+    }
+
+    async fn post(&self, id: String) -> Result<impl warp::Reply, warp::Rejection> {
+        Ok(self._post(&id[..]).await)
     }
 
     fn create_post(&self, create: CreatePost) -> EmptyResponse {
@@ -167,8 +173,12 @@ impl HTTPHandler {
         }
     }
 
-    fn login(&self, usr: &str, pass: &str) -> JSONResponse {
-        match self.auth.login(usr, pass) {
+    async fn login(&self, creds: LoginDTO) -> JSONResponse {
+        match self
+            .auth
+            .login(&creds.username[..], &creds.password[..])
+            .await
+        {
             Ok(token) => JSONResponse(Ok(warp::reply::with_status(
                 warp::reply::json(&token),
                 StatusCode::OK,
@@ -177,6 +187,10 @@ impl HTTPHandler {
                 message: err.message,
             })),
         }
+    }
+
+    async fn authenticate(&self, creds: LoginDTO) -> Result<impl warp::Reply, warp::Rejection> {
+        Ok(self.login(creds).await)
     }
 
     fn authorize(&self) -> impl Filter<Extract = ((),), Error = Rejection> + Copy + '_ {
@@ -196,18 +210,18 @@ impl HTTPHandler {
     }
 
     pub async fn start(&'static self, addr: SocketAddr) {
-        let login = warp::path!("user")
+        let authenticate = warp::path!("user")
             .and(warp::post())
             .and(warp::body::json())
-            .map(move |creds: LoginDTO| self.login(&creds.username[..], &creds.password[..]));
-
-        let posts_by_filter = warp::path!("posts")
-            .and(warp::get())
-            .and(warp::query().map(move |filter: PostFilter| self.posts(filter)));
+            .and_then(move |creds: LoginDTO| self.authenticate(creds));
 
         let post_by_id = warp::path!("posts" / String)
             .and(warp::get())
-            .map(move |id: String| self.post(&id[..]));
+            .and_then(move |id: String| self.post(id));
+
+        let posts_by_filter = warp::path!("posts")
+            .and(warp::get())
+            .and(warp::query().and_then(move |filter: PostFilter| self.posts(filter)));
 
         let create_post = warp::path!("posts")
             // TODO Uncomment authorize "middleware" (not working properly)
@@ -223,9 +237,9 @@ impl HTTPHandler {
             .and(warp::body::json())
             .map(move |id: String, update: UpdatePost| self.update_post(id, update));
 
-        let routes = login
+        let routes = post_by_id
+            .or(authenticate)
             .or(posts_by_filter)
-            .or(post_by_id)
             .or(create_post)
             .or(update_post)
             .recover(error_handler);

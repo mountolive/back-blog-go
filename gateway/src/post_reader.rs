@@ -1,4 +1,4 @@
-use crate::post::{Filter, Post, PostSummary, ReadClient, ReaderError};
+use crate::post::{Filter, Post, PostSummary, ReaderError};
 use reqwest;
 use time::{format_description, OffsetDateTime};
 
@@ -30,6 +30,7 @@ impl ReaderClientConfig {
 
 /// It's an impl ReaderClient
 pub struct PostReader {
+    client: reqwest::Client,
     parsed_base_url: reqwest::Url,
     config: ReaderClientConfig,
 }
@@ -39,6 +40,7 @@ impl PostReader {
     pub fn new(config: ReaderClientConfig) -> Result<Self, ReaderError> {
         match reqwest::Url::parse(&config.base_url[..]) {
             Ok(parsed_base_url) => Ok(PostReader {
+                client: reqwest::Client::new(),
                 parsed_base_url,
                 config,
             }),
@@ -106,13 +108,11 @@ impl PostReader {
         let url = self.parsed_base_url.join(id).unwrap();
         url.as_str().to_string()
     }
-}
 
-impl ReadClient for PostReader {
-    /// Retrieves all posts' summaries that match the passed filter
-    fn posts(&self, filter: Filter) -> Result<Vec<PostSummary>, ReaderError> {
-        match reqwest::blocking::get(self.build_filter_url(filter)) {
-            Ok(response) => match response.json() {
+    /// Retrieves posts by the passed filters
+    pub async fn posts(&self, filter: Filter) -> Result<Vec<PostSummary>, ReaderError> {
+        match self.client.get(self.build_filter_url(filter)).send().await {
+            Ok(response) => match response.json().await {
                 Ok(result) => Ok(result),
                 Err(e) => Err(ReaderError {
                     message: format!("posts desearializing: {}", e),
@@ -125,9 +125,9 @@ impl ReadClient for PostReader {
     }
 
     /// Retrieves the post with the passed id
-    fn post(&self, id: &str) -> Result<Post, ReaderError> {
-        match reqwest::blocking::get(self.build_id_url(id)) {
-            Ok(response) => match response.json() {
+    pub async fn post(&self, id: &str) -> Result<Post, ReaderError> {
+        match self.client.get(self.build_id_url(id)).send().await {
+            Ok(response) => match response.json().await {
                 Ok(result) => Ok(result),
                 Err(e) => Err(ReaderError {
                     message: format!("post desearializing: {:?}", e),

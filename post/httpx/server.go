@@ -209,11 +209,11 @@ func (s Server) GetPost(w http.ResponseWriter, r *http.Request) {
 		url = url[1:]
 	}
 	splittedPath := strings.Split(url, "/")
-	if len(splittedPath) != 2 {
+	if len(splittedPath) != 1 {
 		writeError(w, newNotFoundError())
 		return
 	}
-	id := strings.Split(splittedPath[1], "?")[0]
+	id := splittedPath[0]
 	post, err := s.repo.GetPost(r.Context(), id)
 	if err != nil {
 		writeError(w, newRepositoryError(err))

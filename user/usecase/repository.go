@@ -139,19 +139,28 @@ const errMsgLoginRepo = "users repository login: %w"
 
 // Login checks whether the login credentials passed match for the user
 func (r *UserRepository) Login(ctx context.Context, login LoginDTO) (bool, error) {
-	err := r.Store.CheckIfCorrectPassword(
-		ctx,
-		&CheckUserAndPasswordDto{
-			Email:    login.Email,
-			Username: login.Username,
-			Password: login.Password,
-		},
-	)
+	userCheck := &CheckUserAndPasswordDto{
+		Password: login.Password,
+	}
+	if _, err := mail.ParseAddress(login.Email); err != nil {
+		userCheck.Username = login.Username
+		return r.checkPassword(ctx, userCheck, errMsgLoginRepo)
+	}
+	userCheck.Email = login.Email
+	return r.checkPassword(ctx, userCheck, errMsgLoginRepo)
+}
+
+func (r *UserRepository) checkPassword(
+	ctx context.Context,
+	userCheck *CheckUserAndPasswordDto,
+	formattedErrMsg string,
+) (bool, error) {
+	err := r.Store.CheckIfCorrectPassword(ctx, userCheck)
 	if err != nil {
 		if errors.Is(err, ErrCredentialsDontMatch) {
 			return false, nil
 		}
-		return false, fmt.Errorf(errMsgLoginRepo, err)
+		return false, fmt.Errorf(formattedErrMsg, err)
 	}
 	return true, nil
 }

@@ -63,5 +63,6 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+	fmt.Println("ROUTE NOT FOUND:", reqPath)
 	http.NotFound(w, req)
 }

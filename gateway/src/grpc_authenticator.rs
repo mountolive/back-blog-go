@@ -1,14 +1,8 @@
 // ! gRPC authenticator's implementation
 
-use crate::auth::{AuthenticationError, Authenticator};
+use crate::auth::AuthenticationError;
 use crate::user::login_client::LoginClient;
-use crate::user::{LoginRequest, LoginResponse};
-use futures::executor::block_on;
-
-/// GRPCAuthenticator gRPC authenticator implementation
-pub struct GRPCAuthenticator {
-    client: LoginClient<tonic::transport::Channel>,
-}
+use crate::user::LoginRequest;
 
 /// Creates a login client
 pub async fn create_grpc_login_client(
@@ -21,41 +15,23 @@ pub async fn create_grpc_login_client(
     LoginClient::new(channel)
 }
 
-impl GRPCAuthenticator {
-    /// Creates a new GRPCAuthenticator wrapping the passed LoginClient
-    pub fn new(client: LoginClient<tonic::transport::Channel>) -> Self {
-        GRPCAuthenticator { client }
-    }
-
-    /// Login synchronously. Let the client handle async code
-    fn login(
-        &self,
-        login: &str,
-        password: &str,
-    ) -> Result<tonic::Response<LoginResponse>, tonic::Status> {
-        let future_login = async move {
-            // **Rolls his eyes**
-            let mut copied_client = self.client.clone();
-            copied_client
-                .login(LoginRequest {
-                    login: login.to_string(),
-                    password: password.to_string(),
-                })
-                .await
-        };
-
-        // FIXME: This blocks forever
-        block_on(future_login)
-    }
-}
-
-impl Authenticator for GRPCAuthenticator {
-    fn authenticate(&self, username: &str, password: &str) -> Result<bool, AuthenticationError> {
-        match self.login(username, password) {
-            Ok(response) => Ok(response.get_ref().success),
-            Err(e) => Err(AuthenticationError {
-                message: e.message().to_string(),
-            }),
-        }
+/// Logins against authentication server
+pub async fn authenticate(
+    client: LoginClient<tonic::transport::Channel>,
+    login: &str,
+    password: &str,
+) -> Result<bool, AuthenticationError> {
+    let mut copied_client = client.clone();
+    match copied_client
+        .login(LoginRequest {
+            login: login.to_string(),
+            password: password.to_string(),
+        })
+        .await
+    {
+        Ok(response) => Ok(response.get_ref().success),
+        Err(e) => Err(AuthenticationError {
+            message: e.message().to_string(),
+        }),
     }
 }
