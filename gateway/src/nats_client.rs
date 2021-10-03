@@ -1,5 +1,4 @@
 use crate::post::{CreatePost, FullUpdatePost, MutatorClient, MutatorError};
-use nats;
 use serde::Serialize;
 use std::fmt;
 

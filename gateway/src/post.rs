@@ -2,7 +2,6 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::time::SystemTime;
 
 /// DTO a full post's data
 #[derive(Serialize, Deserialize)]

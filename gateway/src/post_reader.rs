@@ -1,5 +1,4 @@
 use crate::post::{Filter, Post, PostSummary, ReaderError};
-use reqwest;
 
 /// Wraps the Client's basic config
 pub struct ReaderClientConfig {

@@ -186,7 +186,7 @@ impl AuthService {
                 }
                 // TODO Handle serializing Result for login's token
                 let serialized_token = serde_json::to_string(&token).unwrap();
-                match self.store.save(&usr, &serialized_token[..]) {
+                match self.store.save(usr, &serialized_token[..]) {
                     Ok(_) => Ok(token.value),
                     Err(e) => Err(AuthenticationError { message: e.message }),
                 }
