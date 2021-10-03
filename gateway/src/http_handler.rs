@@ -196,8 +196,8 @@ impl HTTPHandler {
     fn authorize(&self) -> impl Filter<Extract = ((),), Error = Rejection> + Copy + '_ {
         warp::header::<String>("Authorization").and_then(move |token: String| async move {
             match self.auth.authorize(token.trim_start_matches(TOKEN_PREFIX)) {
-                Ok(auth) => {
-                    if !auth {
+                Ok(is_evicted) => {
+                    if is_evicted {
                         return Err(reject::custom(Unauthorized));
                     }
                     Ok(())
@@ -224,18 +224,16 @@ impl HTTPHandler {
             .and(warp::query().and_then(move |filter: PostFilter| self.posts(filter)));
 
         let create_post = warp::path!("posts")
-            // TODO Uncomment authorize "middleware" (not working properly)
-            // .and(self.authorize())
             .and(warp::post())
+            .and(self.authorize())
             .and(warp::body::json())
-            .map(move |create: CreatePost| self.create_post(create));
+            .map(move |_, create: CreatePost| self.create_post(create));
 
         let update_post = warp::path!("posts" / String)
-            // TODO Uncomment authorize "middleware" (not working properly)
-            // .and(self.authorize())
             .and(warp::put())
+            .and(self.authorize())
             .and(warp::body::json())
-            .map(move |id: String, update: UpdatePost| self.update_post(id, update));
+            .map(move |id: String, _, update: UpdatePost| self.update_post(id, update));
 
         let routes = post_by_id
             .or(authenticate)
