@@ -9,6 +9,8 @@ Not intended to be a simple and elegant solution... I'm just using this as an ex
 ## TODO
 
 -  A huge one: explain the architecture...
+-  Another huge one: **code quality is frankly crappy at some layers** -> I need
+    to rework some stuff a bit.
 
 ## CARGO HEADS-UP
 
