@@ -132,15 +132,16 @@ impl fmt::Display for ReaderError {
 
 /// Filter contains the possible options for filtering posts
 #[derive(Deserialize)]
+#[serde(tag = "type")]
 pub enum Filter {
     DateRange {
-        from: SystemTime,
-        to: SystemTime,
+        from: String,
+        to: String,
         page: i32,
         page_size: i32,
     },
     Tags {
-        tags: Vec<String>,
+        tag: String,
         page: i32,
         page_size: i32,
     },

@@ -369,7 +369,7 @@ func buildFilterStatement(
 		whereClause = "WHERE " + strings.Join(whereClauseSegments, " AND ")
 	}
 	whereClause += fmt.Sprintf(
-		" LIMIT %d OFFSET %d",
+		" ORDER BY created_at DESC LIMIT %d OFFSET %d",
 		filter.PageSize,
 		filter.Page,
 	)

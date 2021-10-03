@@ -93,11 +93,11 @@ func main() {
 	}()
 	httpServer := httpx.NewServer(repo)
 	router := httpx.NewRouter()
-	err = router.Add("GET /([A-Za-z0-9]*)", httpServer.GetPost)
+	err = router.Add("GET /posts/([A-Za-z0-9]*)", httpServer.GetPost)
 	if err != nil {
 		log.Fatalf("posts router register, post by id: %v", err)
 	}
-	err = router.Add("GET /([\\?&_=A-Za-z0-9]*)?", httpServer.Filter)
+	err = router.Add("GET /posts([\\?&_=A-Za-z0-9]*)?", httpServer.Filter)
 	if err != nil {
 		log.Fatalf("posts router register, post by tag and date: %v", err)
 	}

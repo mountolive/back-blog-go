@@ -1,11 +1,9 @@
 use crate::post::{Filter, Post, PostSummary, ReaderError};
 use reqwest;
-use time::{format_description, OffsetDateTime};
 
 /// Wraps the Client's basic config
 pub struct ReaderClientConfig {
     pub base_url: String,
-    pub datetime_format: String,
     pub from_param_name: String,
     pub to_param_name: String,
     pub tag_param_name: String,
@@ -18,7 +16,6 @@ impl ReaderClientConfig {
     pub fn with_default(base_url: String) -> Self {
         ReaderClientConfig {
             base_url,
-            datetime_format: "[year]-[month]-[day]".to_string(),
             from_param_name: "start_date".to_string(),
             to_param_name: "end_date".to_string(),
             tag_param_name: "tag".to_string(),
@@ -51,9 +48,7 @@ impl PostReader {
     }
 
     fn build_filter_url(&self, filter: Filter) -> String {
-        let base_url = self.parsed_base_url.as_str();
-        // TODO: Handle format_description::parse error for datetime_format
-        let format = format_description::parse(&self.config.datetime_format[..]).unwrap();
+        let base_url = format!("{}posts", self.parsed_base_url.as_str());
         match filter {
             Filter::DateRange {
                 from,
@@ -62,16 +57,10 @@ impl PostReader {
                 page_size,
             } => {
                 let url = reqwest::Url::parse_with_params(
-                    base_url,
+                    &base_url[..],
                     &[
-                        (
-                            &self.config.from_param_name[..],
-                            &OffsetDateTime::from(from).format(&format).unwrap()[..],
-                        ),
-                        (
-                            &self.config.to_param_name[..],
-                            &OffsetDateTime::from(to).format(&format).unwrap()[..],
-                        ),
+                        (&self.config.from_param_name[..], &from[..]),
+                        (&self.config.to_param_name[..], &to[..]),
                         (&self.config.page_param_name[..], &format!("{}", page)[..]),
                         (
                             &self.config.page_size_param_name[..],
@@ -83,14 +72,14 @@ impl PostReader {
                 url.as_str().to_string()
             }
             Filter::Tags {
-                tags,
+                tag,
                 page,
                 page_size,
             } => {
                 let url = reqwest::Url::parse_with_params(
-                    base_url,
+                    &base_url[..],
                     &[
-                        (&self.config.tag_param_name[..], &tags.join(",")[..]),
+                        (&self.config.tag_param_name[..], &tag[..]),
                         (&self.config.page_param_name[..], &format!("{}", page)[..]),
                         (
                             &self.config.page_size_param_name[..],
@@ -105,8 +94,7 @@ impl PostReader {
     }
 
     fn build_id_url(&self, id: &str) -> String {
-        let url = self.parsed_base_url.join(id).unwrap();
-        url.as_str().to_string()
+        format!("{}posts/{}", self.parsed_base_url.as_str(), id)
     }
 
     /// Retrieves posts by the passed filters

@@ -1,6 +1,6 @@
 //! HTTP handlers' definitions
 use crate::auth::AuthService;
-use crate::post::{CreatePost, Filter as PostFilter, PostCreator, PostUpdater, UpdatePost};
+use crate::post::{CreatePost, PostCreator, PostUpdater, UpdatePost};
 use crate::post_reader::PostReader;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -47,6 +47,18 @@ async fn error_handler(rej: Rejection) -> Result<impl Reply, Infallible> {
             }
             None => {
                 message = "unknown serialization error".to_string();
+            }
+        }
+    }
+
+    if let Some(e) = rej.find::<warp::reject::InvalidQuery>() {
+        match e.source() {
+            Some(cause) => {
+                code = StatusCode::BAD_REQUEST;
+                message = cause.to_string();
+            }
+            None => {
+                message = "unknown query serialization error".to_string();
             }
         }
     }
@@ -117,7 +129,7 @@ struct Unauthorized;
 impl reject::Reject for Unauthorized {}
 
 impl HTTPHandler {
-    async fn _posts(&self, filter: PostFilter) -> JSONResponse {
+    async fn _posts(&self, filter: crate::post::Filter) -> JSONResponse {
         match self.reader.posts(filter).await {
             Ok(posts) => JSONResponse(Ok(warp::reply::with_status(
                 warp::reply::json(&posts),
@@ -129,7 +141,10 @@ impl HTTPHandler {
         }
     }
 
-    async fn posts(&self, filter: PostFilter) -> Result<impl warp::Reply, warp::Rejection> {
+    async fn posts(
+        &self,
+        filter: crate::post::Filter,
+    ) -> Result<impl warp::Reply, warp::Rejection> {
         Ok(self._posts(filter).await)
     }
 
@@ -221,7 +236,9 @@ impl HTTPHandler {
 
         let posts_by_filter = warp::path!("posts")
             .and(warp::get())
-            .and(warp::query().and_then(move |filter: PostFilter| self.posts(filter)));
+            // TODO: post_by_filter should be able to work by means of queryParams
+            .and(warp::body::json())
+            .and_then(move |filter: crate::post::Filter| self.posts(filter));
 
         let create_post = warp::path!("posts")
             .and(warp::post())
