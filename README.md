@@ -64,6 +64,7 @@ POST_SERVER_PASSWORD
 POST_SERVER_SUBJECT
 POST_SERVER_HOST
 POST_SERVER_PORT
+API_URL
 ```
 
 It's best to set them in a local `.env.local`, prefixed with `export`.

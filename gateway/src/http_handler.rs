@@ -252,12 +252,15 @@ impl HTTPHandler {
             .and(warp::body::json())
             .map(move |id: String, _, update: UpdatePost| self.update_post(id, update));
 
+        let cors = warp::cors().allow_any_origin().allow_methods(vec!["GET"]);
+
         let routes = post_by_id
             .or(authenticate)
             .or(posts_by_filter)
             .or(create_post)
             .or(update_post)
-            .recover(error_handler);
+            .recover(error_handler)
+            .with(cors);
 
         warp::serve(routes).run(addr).await;
     }
