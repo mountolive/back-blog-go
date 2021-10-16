@@ -5,7 +5,7 @@ import fetchAll from '~/lib/entries.ts'
 export default function Home() {
   const imgSize = 200;
   // const envs = Deno.env.toObject();
-  const [posts, isSyncing] = fetchAll('http://localhost:8003/posts/');
+  const [postsByDate, isSyncing] = fetchAll('http://localhost:8003/posts-by-date');
 
   return (
     <div className="page">
@@ -24,10 +24,10 @@ export default function Home() {
         {isSyncing && (
           <p className="entries-txt">...</p>
         )}
-        {!isSyncing && posts.length > 0 && (
+        {!isSyncing && postsByDate.length > 0 && (
           <p className="entries-txt">Found something for you</p>
         )}
-        {!isSyncing && posts.length === 0 && (
+        {!isSyncing && postsByDate.length === 0 && (
          <p className="entries-txt">Nothing to see here</p>
         )}
       </div>

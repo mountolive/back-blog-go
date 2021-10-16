@@ -1,7 +1,7 @@
 //! HTTP handlers' definitions
 use crate::auth::AuthService;
 use crate::post::{CreatePost, PostCreator, PostUpdater, UpdatePost};
-use crate::post_reader::PostReader;
+use crate::post_reader::{DateRange, PostReader, Tag};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::error::Error;
@@ -129,8 +129,8 @@ struct Unauthorized;
 impl reject::Reject for Unauthorized {}
 
 impl HTTPHandler {
-    async fn _posts(&self, filter: crate::post::Filter) -> JSONResponse {
-        match self.reader.posts(filter).await {
+    async fn _posts_by_date(&self, filter: DateRange) -> JSONResponse {
+        match self.reader.posts_by_date(filter).await {
             Ok(posts) => JSONResponse(Ok(warp::reply::with_status(
                 warp::reply::json(&posts),
                 StatusCode::OK,
@@ -141,11 +141,24 @@ impl HTTPHandler {
         }
     }
 
-    async fn posts(
-        &self,
-        filter: crate::post::Filter,
-    ) -> Result<impl warp::Reply, warp::Rejection> {
-        Ok(self._posts(filter).await)
+    async fn posts_by_date(&self, filter: DateRange) -> Result<impl warp::Reply, warp::Rejection> {
+        Ok(self._posts_by_date(filter).await)
+    }
+
+    async fn _posts_by_tag(&self, filter: Tag) -> JSONResponse {
+        match self.reader.posts_by_tag(filter).await {
+            Ok(posts) => JSONResponse(Ok(warp::reply::with_status(
+                warp::reply::json(&posts),
+                StatusCode::OK,
+            ))),
+            Err(err) => JSONResponse(Err(HandlerError {
+                message: err.message,
+            })),
+        }
+    }
+
+    async fn posts_by_tag(&self, filter: Tag) -> Result<impl warp::Reply, warp::Rejection> {
+        Ok(self._posts_by_tag(filter).await)
     }
 
     async fn _post(&self, id: &str) -> JSONResponse {
@@ -234,11 +247,15 @@ impl HTTPHandler {
             .and(warp::get())
             .and_then(move |id: String| self.post(id));
 
-        let posts_by_filter = warp::path!("posts")
+        let posts_by_date = warp::path!("posts-by-date")
             .and(warp::get())
-            // TODO: post_by_filter should be able to work by means of queryParams
-            .and(warp::body::json())
-            .and_then(move |filter: crate::post::Filter| self.posts(filter));
+            .and(warp::query::<DateRange>())
+            .and_then(move |filter: DateRange| self.posts_by_date(filter));
+
+        let posts_by_tag = warp::path!("posts-by-tag")
+            .and(warp::get())
+            .and(warp::query::<Tag>())
+            .and_then(move |filter: Tag| self.posts_by_tag(filter));
 
         let create_post = warp::path!("posts")
             .and(warp::post())
@@ -256,7 +273,8 @@ impl HTTPHandler {
 
         let routes = post_by_id
             .or(authenticate)
-            .or(posts_by_filter)
+            .or(posts_by_date)
+            .or(posts_by_tag)
             .or(create_post)
             .or(update_post)
             .recover(error_handler)
