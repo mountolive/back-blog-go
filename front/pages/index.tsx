@@ -1,5 +1,6 @@
 import React from 'react'
 import Pic from '~/components/pic.tsx'
+import SummaryList from '~/components/summaryList.tsx'
 import fetchAll from '~/lib/entries.ts'
 
 export default function Home() {
@@ -25,7 +26,7 @@ export default function Home() {
           <p className="entries-txt">...</p>
         )}
         {!isSyncing && postsByDate.length > 0 && (
-          <p className="entries-txt">Found something for you</p>
+          SummaryList("list", postsByDate)
         )}
         {!isSyncing && postsByDate.length === 0 && (
          <p className="entries-txt">Nothing to see here</p>
