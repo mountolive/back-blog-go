@@ -8,7 +8,8 @@ main {
 }
 
 .page {
-	height: 80%;
+  height: 80%;
+  width: 80%;
 }
 
 .page h1 {
@@ -32,12 +33,14 @@ main {
 }
 
 .logo {
+  height: 40%;
   margin-top: 6px;
   text-align: center;
 }
 
-.main-img {
+.logo img {
   border-radius: 50%;
+  height: 100%;
 }
 
 .links span,
@@ -66,11 +69,11 @@ main {
 }
 
 .entries {
-  height: 100%;
+  height: 90%;
+  width: 80%;
   justify-content: center;
   align-items: center;
-  width: 270px;
-  margin: 30px auto 0;
+  margin: 2% auto 0;
 }
 
 .entries-txt {
@@ -78,7 +81,6 @@ main {
 }
 
 .page .copyinfo {
-  margin-top: 30px;
   font-size: 14px;
   color: #999;
 }
@@ -95,4 +97,48 @@ main {
 .list p {
   color: #999;
   font-size: 15px;
+}
+
+.wrongtag {
+  margin-top: 2%;
+  margin-bottom: 2%;
+}
+
+.back {
+}
+
+.post {
+}
+
+.post p {
+}
+
+.post h1 {
+}
+
+@media (max-width: 1000px) {
+  .list h1 {
+    font-size: 18px;
+  }
+
+  .list p {
+    color: #999;
+    font-size: 10px;
+  }
+
+  .page h1 {
+    font-size: 13px;
+  }
+
+  .page .copyinfo {
+    font-size: 10px;
+  }
+
+  .links a {
+    font-size: 13px;
+  }
+
+  .logo {
+    height: 20%;
+   }
 }

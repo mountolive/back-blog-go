@@ -1,0 +1,7 @@
+import React from 'react'
+
+export default function Pic(className: string) {
+  return (
+    <img src="/small_leo.png" className={className} title="leoponcio" />
+  )
+}

@@ -10,7 +10,7 @@ then
   curl -X POST \
   -H 'Content-type: application/json' \
   -H "Authorization: Bearer ${2}" \
-  -d "{\"content\":\"something\",\"title\":\"title\",\"creator\":\"mountolive\", \"tags\":[\"test\"]}" \
+  -d "{\"content\":\"something\",\"title\":\"very very very very very very very very very very very very very very very very very very very very long title title or how to wrap it\",\"creator\":\"mountolive\", \"tags\":[\"test\"]}" \
   "http://localhost:8003/posts"
   exit $?
 fi

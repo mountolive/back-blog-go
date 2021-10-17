@@ -39,6 +39,7 @@ static USER_KEY: &str = "user";
 
 impl JWTToken {
     /// Creates a new JWT token from the username passed and with the passed TTL (in seconds)
+    // TODO: Encode timestamp along with username so that tokens are actually different
     pub fn generate(username: &str, ttl: u64, key: &Hmac<Sha256>) -> Result<JWTToken, TokenError> {
         let mut claims = BTreeMap::new();
         claims.insert(USER_KEY, username);
