@@ -1,3 +1,5 @@
+import Footer from '~/components/footer.tsx'
+import GoBack from '~/components/goBack.tsx'
 import MainTop from '~/components/mainTop.tsx'
 import PostDetail from '~/components/postDetail.tsx'
 import React from 'react'
@@ -13,9 +15,10 @@ export default function Post() {
      {id ? PostDetail("post", id) : (
        <>
          <p className="wrongtag">Something wrong happened :/</p>
-         <p className="back" onClick={_event => location.href="/"}>Go back</p>
        </>
      )}
+     <GoBack />
+     <Footer />
     </div>
   )
 }

@@ -1,5 +1,7 @@
+import GoBack from '~/components/goBack.tsx'
 import React from 'react'
 import fetchOne from '~/lib/fetchOne.ts'
+import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
 
 export default function PostDetail(className: string, id: string) {
   // const envs = Deno.env.toObject();
@@ -13,8 +15,8 @@ export default function PostDetail(className: string, id: string) {
       {!isSyncing && post && (
         <div>
           <h1>{post.title}</h1>
-          <div>{post.content}</div>
-          <p>{post.createdAt}</p>
+          <p className="postdate">{post.createdAt}</p>
+          <div>{decode(post.content)}</div>
         </div>
       )}
       {!isSyncing && !post && (
@@ -22,4 +24,10 @@ export default function PostDetail(className: string, id: string) {
       )}
     </div>
   )
+}
+
+// I trust myself :)
+function decode(htmlContent: string): string {
+  const doc = new DOMParser().parseFromString(htmlContent, 'text/html')
+  return doc?.documentElement ? doc.documentElement.textContent : 'Wonky content';
 }

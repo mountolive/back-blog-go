@@ -1,4 +1,5 @@
 import fetchAll from '~/lib/fetchAll.ts'
+import Footer from '~/components/footer.tsx'
 import MainTop from '~/components/mainTop.tsx'
 import React from 'react'
 import SummaryList from '~/components/summaryList.tsx'
@@ -21,7 +22,7 @@ export default function Home() {
          <p className="entries-txt">Nothing to see here</p>
         )}
       </div>
-      <p className="copyinfo">All (potentially stupid) stuff in here were said by Leonardo Guercio</p>
+      <Footer />
     </div>
   )
 }
