@@ -27,7 +27,26 @@ ssh-add
 - Rust (>1.54)
 - Protoc (`sudo apt install -y protobuf-compiler`, if using `apt`)
 
+### Alternative (nix <3)!
+
+- Install [`nix`](https://nixos.org/guides/install-nix.html)
+- Install [`direnv`](https://direnv.net/docs/hook.html)
+- Run (if using bash, follow the linked source if not):
+```bash
+eval "$(direnv hook bash)"
+```
+(add this to your `.bashrc`)
+- Run:
+```bash
+echo "use nix" > .envrc && direnv allow
+```
+
+Off to go
+
 ### Set the .env variables for local development
+
+If using the previous approach, these variable will be loaded on every time you
+enter the project's directory
 
 ```
 NATS_PORT
