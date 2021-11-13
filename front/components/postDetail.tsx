@@ -1,11 +1,15 @@
+import config from '~/lib/config.ts'
+import fetchOne from '~/lib/fetchOne.ts'
 import GoBack from '~/components/goBack.tsx'
 import React from 'react'
-import fetchOne from '~/lib/fetchOne.ts'
 import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
 
 export default function PostDetail(className: string, id: string) {
-  // const envs = Deno.env.toObject();
-  const [post, isSyncing] = fetchOne(`http://localhost:8003/posts`, id);
+  const envs = config();
+  const [post, isSyncing] = fetchOne(
+    `${envs.TRANSPORT}://${envs.GATEWAY_HOST}:${envs.GATEWAY_PORT}/posts`,
+    id,
+  );
 
   return (
     <div className={className}>

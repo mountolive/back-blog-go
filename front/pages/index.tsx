@@ -1,3 +1,4 @@
+import config from '~/lib/config.ts'
 import fetchAll from '~/lib/fetchAll.ts'
 import Footer from '~/components/footer.tsx'
 import MainTop from '~/components/mainTop.tsx'
@@ -5,8 +6,10 @@ import React from 'react'
 import SummaryList from '~/components/summaryList.tsx'
 
 export default function Home() {
-  // const envs = Deno.env.toObject();
-  const [postsByDate, isSyncing] = fetchAll('http://localhost:8003/posts-by-date');
+  const envs = config();
+  const [postsByDate, isSyncing] = fetchAll(
+    `${envs.TRANSPORT}://${envs.GATEWAY_HOST}:${envs.GATEWAY_PORT}/posts-by-date`,
+  );
 
   return (
     <div className="page">
