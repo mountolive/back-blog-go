@@ -3,4 +3,7 @@
 */.env*
 *.env*
 */target/*
+*/.aleph/*
 */.*tags
+post/cmd/posts/posts
+user/cmd/users/users

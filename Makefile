@@ -55,3 +55,15 @@ tidy:
 	cd user && go mod tidy
 	cd ..
 	cd post && go mod tidy
+
+build-posts:
+	cd post && $(MAKE) build
+
+build-users:
+	cd user && $(MAKE) build
+
+build-gateway-release:
+	cd gateway && $(MAKE) build-release
+
+deploy:
+	./scripts/deploy.sh
