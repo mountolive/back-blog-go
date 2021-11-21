@@ -7,6 +7,7 @@ pkgs.mkShell {
     # system deps
     pkgs.cmake
     pkgs.openssl
+    pkgs.pkg-config
 
     # docker
     pkgs.docker
