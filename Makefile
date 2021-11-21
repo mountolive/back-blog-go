@@ -29,9 +29,18 @@ run-gateway:
 local-infra:
 	docker-compose --file docker-compose-infra.yml --env-file .env.local up -d
 
+local-infra-no-d:
+	docker-compose --file docker-compose-infra.yml --env-file .env.local up
+
+down-infra:
+	docker-compose --file docker-compose-infra.yml down --remove-orphans
+
 restart-infra:
-	docker-compose --file docker-compose-infra.yml down
+	make down-infra
 	make local-infra
+
+ps-infra:
+	docker-compose --file docker-compose-infra.yml ps
 
 todo:
 	find . -name '*.go' -or -name '*.rs' | xargs grep -n TODO
@@ -46,17 +55,3 @@ tidy:
 	cd user && go mod tidy
 	cd ..
 	cd post && go mod tidy
-
-start-all:
-	docker-compose up -d
-
-rebuild:
-	docker-compose down -v
-	docker-compose rm
-	docker-compose build
-
-start-all-block:
-	docker-compose up
-
-shutdown-all:
-	docker-compose down --remove-orphans

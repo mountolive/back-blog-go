@@ -18,6 +18,8 @@ services:
     ports:
       - "${USERS_DB_PORT}:${USERS_DB_PORT}"
     command: [ "postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}" ]
+    volumes:
+      - pgdata_users:/var/lib/postgresql/data
   postgresql_post:
     image: postgres:13
     environment:
@@ -29,3 +31,20 @@ services:
     ports:
       - "${POSTS_DB_PORT}:${POSTS_DB_PORT}"
     command: [ "postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}" ]
+    volumes:
+      - pgdata_posts:/var/lib/postgresql/data
+  nginx:
+    restart: unless-stopped
+    image: staticfloat/nginx-certbot
+    ports:
+        - 80:80/tcp
+        - 443:443/tcp
+    environment:
+        CERTBOT_EMAIL: lpguercio@gmail.com
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/user.conf.d:ro
+      - letsencrypt:/etc/letsencrypt
+volumes:
+  pgdata_posts:
+  pgdata_users:
+  letsencrypt:
