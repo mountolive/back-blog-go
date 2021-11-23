@@ -42,6 +42,9 @@ restart-infra:
 ps-infra:
 	docker-compose --file docker-compose-infra.yml ps
 
+logs-infra:
+	docker-compose --file docker-compose-infra.yml logs -f
+
 todo:
 	find . -name '*.go' -or -name '*.rs' | xargs grep -n TODO
 
