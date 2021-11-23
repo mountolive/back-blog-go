@@ -40,7 +40,7 @@ services:
         - "80:80"
         - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/user.conf.d:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./certbot/www:/var/www/certbot/:ro
 volumes:
   pgdata_posts:
