@@ -64,6 +64,3 @@ build-users:
 
 build-gateway-release:
 	cd gateway && $(MAKE) build-release
-
-deploy:
-	./scripts/deploy.sh
