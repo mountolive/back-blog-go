@@ -27,23 +27,23 @@ run-gateway:
 	cd gateway && cargo run
 
 local-infra:
-	docker-compose --file docker-compose-infra.yml --env-file .env.local up -d
+	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local up -d
 
 local-infra-no-d:
-	docker-compose --file docker-compose-infra.yml --env-file .env.local up
+	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local up
 
 down-infra:
-	docker-compose --file docker-compose-infra.yml down --remove-orphans
+	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml down --remove-orphans
 
 restart-infra:
 	make down-infra
 	make local-infra
 
 ps-infra:
-	docker-compose --file docker-compose-infra.yml ps
+	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml ps
 
 logs-infra:
-	docker-compose --file docker-compose-infra.yml logs -f
+	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml logs -f
 
 todo:
 	find . -name '*.go' -or -name '*.rs' | xargs grep -n TODO

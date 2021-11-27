@@ -1,0 +1,14 @@
+version: "2.2"
+
+services:
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    environment:
+      - "${TRANSPORT:-http}"
+      - "${GATEWAY_HOST:-gateway}"
+      - "${GATEWAY_PORT:-8003}"
+    ports:
+      - "8080:8080"
+    command: "make dev"
