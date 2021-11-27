@@ -12,3 +12,4 @@ services:
     ports:
       - "8080:8080"
     command: "make dev"
+# TODO Add the rest of the services here
