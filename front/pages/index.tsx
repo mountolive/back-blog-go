@@ -22,7 +22,7 @@ export default function Home() {
           SummaryList("list", postsByDate)
         )}
         {!isSyncing && postsByDate.length === 0 && (
-         <p className="entries-txt">Nothing to see here</p>
+         <p className="entries-txt">Nothing to see here, for now...</p>
         )}
       </div>
       <Footer />

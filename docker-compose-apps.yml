@@ -5,6 +5,9 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
+    depends_on:
+      gateway:
+        condition: service_started
     environment:
       - "${TRANSPORT:-http}"
       - "${GATEWAY_HOST:-gateway}"
@@ -12,4 +15,65 @@ services:
     ports:
       - "8080:8080"
     command: "make dev"
-# TODO Add the rest of the services here
+  users:
+    build:
+      context: ./user
+      dockerfile: Dockerfile
+    depends_on:
+      postgresql_user:
+        condition: service_healthy
+    environment:
+      - USERS_DB_USER
+      - USERS_DB_PASS
+      - USERS_DB_NAME
+      - USERS_DB_HOST
+      - USERS_DB_PORT
+      - USERS_PORT
+    ports:
+    - "${USERS_PORT}:${USERS_PORT}"
+  posts:
+    build:
+      context: ./post
+      dockerfile: Dockerfile
+    depends_on:
+      postgresql_post:
+        condition: service_healthy
+      users:
+        condition: service_started
+    environment:
+      - POSTS_DB_USER
+      - POSTS_DB_PASS
+      - POSTS_DB_NAME
+      - POSTS_DB_HOST
+      - POSTS_DB_PORT
+      - POSTS_NATS_HOST
+      - POSTS_NATS_PORT
+      - POSTS_USERS_GRPC_HOST
+      - POSTS_USERS_GRPC_PORT
+      - POSTS_NATS_SUBSCRIPTION_NAME
+      - POSTS_NATS_DEADLETTER_NAME
+      - POSTS_HTTP_PORT
+    ports:
+      - "${POSTS_HTTP_PORT}:${POSTS_HTTP_PORT}"
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    depends_on:
+      users:
+        condition: service_started
+      posts:
+        condition: service_started
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    environment:
+      - NATS_SERVER_USER
+      - NATS_SERVER_PASSWORD
+      - NATS_SERVER_SUBJECT
+      - NATS_SERVER_HOST
+      - NATS_SERVER_PORT
+      - USER_SERVICE_ADDRESS
+      - TOKEN_TTL
+      - TOKEN_SALT
+      - POST_REST_API_URL
+      - GATEWAY_PORT
