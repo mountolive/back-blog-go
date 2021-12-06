@@ -26,6 +26,9 @@ run-gateway:
 	make build-gateway
 	cd gateway && cargo run
 
+build-infra:
+	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local build
+
 local-infra:
 	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local up -d
 

@@ -82,7 +82,7 @@ async fn main() {
 
     let port = env::var("GATEWAY_PORT").expect("port not set");
     let address =
-        SocketAddr::from_str(&format!("127.0.0.1:{}", port)[..]).expect("malformed server address");
+        SocketAddr::from_str(&format!("0.0.0.0:{}", port)[..]).expect("malformed server address");
 
     println!("starting gateway at port {}", port);
 

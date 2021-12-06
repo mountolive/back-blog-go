@@ -40,6 +40,8 @@ services:
         condition: service_healthy
       users:
         condition: service_started
+      nats:
+        condition: service_started
     environment:
       - POSTS_DB_USER
       - POSTS_DB_PASS
@@ -67,11 +69,11 @@ services:
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     environment:
-      - NATS_SERVER_USER
-      - NATS_SERVER_PASSWORD
-      - NATS_SERVER_SUBJECT
-      - NATS_SERVER_HOST
-      - NATS_SERVER_PORT
+      - POST_SERVER_USER
+      - POST_SERVER_PASSWORD
+      - POST_SERVER_SUBJECT
+      - POST_SERVER_HOST
+      - POST_SERVER_PORT
       - USER_SERVICE_ADDRESS
       - TOKEN_TTL
       - TOKEN_SALT

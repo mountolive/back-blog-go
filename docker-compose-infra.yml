@@ -45,12 +45,12 @@ services:
       - pgdata_posts:/var/lib/postgresql/data
   nginx:
      restart: unless-stopped
-     image: staticfloat/nginx-certbot
+     image: nginx:latest
      ports:
          - 80:80/tcp
          - 443:443/tcp
      volumes:
-       - ./nginx/conf.d:/etc/nginx/user.conf.d:ro
+       - ./nginx:/etc/nginx:ro
 volumes:
   pgdata_posts:
   pgdata_users:

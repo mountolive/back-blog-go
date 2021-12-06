@@ -11,7 +11,7 @@ then
     echo "pass an auth token"
     exit 1
   fi
-  curl -X POST \
+  curl -v -X POST \
   -H 'Content-type: application/json' \
   -H "Authorization: Bearer ${2}" \
   -d '{"content":"```something in a block```","title":"markdown test","creator":"mountolive", "tags":["test"]}' \
@@ -31,7 +31,7 @@ then
     echo "pass an auth token"
     exit 1
   fi
-  curl -X PUT \
+  curl -v -X PUT \
   -H 'Content-type: application/json' \
   -H "Authorization: Bearer ${3}" \
   -d "{\"content\":\"something-better\",\"title\":\"best-title\",\"creator\":\"mountolive\", \"tags\":[\"awesome\"]}" \
@@ -46,7 +46,7 @@ then
     echo "pass the id of a post to be read"
     exit 1
   fi
-  curl "http://localhost:8003/posts/${2}"
+  curl -v "http://localhost:8003/posts/${2}"
   exit $?
 fi
 
