@@ -9,7 +9,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20201113031856-722100d81a8e
 	github.com/jackc/pgx/v4 v4.9.2
 	github.com/joho/godotenv v1.3.0
-	github.com/microcosm-cc/bluemonday v1.0.5
+	github.com/microcosm-cc/bluemonday v1.0.16
 	github.com/nats-io/nats-server/v2 v2.2.6 // indirect
 	github.com/nats-io/nats.go v1.11.0
 	github.com/ory/dockertest/v3 v3.7.0
@@ -23,7 +23,6 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.0 // indirect
-	github.com/chris-ramon/douceur v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.7+incompatible // indirect
 	github.com/docker/docker v20.10.7+incompatible // indirect
@@ -56,9 +55,9 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
-	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3 // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
+	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
