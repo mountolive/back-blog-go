@@ -49,26 +49,26 @@ logs-infra:
 	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml logs -f
 
 live-build-infra:
-	docker-compose --file docker-compose-infra.live.yml --file docker-compose-apps.live.yml --env-file .env.local build
+	docker-compose --file docker-compose.live.yml --env-file .env.local build
 
 live-infra:
-	docker-compose --file docker-compose-infra.live.yml --file docker-compose-apps.live.yml --env-file .env.local up -d
+	docker-compose --file docker-compose.live.yml --env-file .env.local up -d
 
 live-infra-no-d:
-	docker-compose --file docker-compose-infra.live.yml --file docker-compose-apps.live.yml --env-file .env.local up
+	docker-compose --file docker-compose.live.yml --env-file .env.local up
 
 down-live-infra:
-	docker-compose --file docker-compose-infra.live.yml --file docker-compose-apps.live.yml down --remove-orphans
+	docker-compose --file docker-compose.live.yml down --remove-orphans
 
 restart-live-infra:
 	make down-live-infra
 	make live-infra
 
 ps-live-infra:
-	docker-compose --file docker-compose-infra.live.yml --file docker-compose-apps.live.yml ps
+	docker-compose --file docker-compose.live.yml ps
 
 live-logs-infra:
-	docker-compose --file docker-compose-infra.live.yml --file docker-compose-apps.live.yml logs -f
+	docker-compose --file docker-compose.live.yml logs -f
 
 todo:
 	find . -name '*.go' -or -name '*.rs' | xargs grep -n TODO
