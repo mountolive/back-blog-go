@@ -22,19 +22,5 @@ pkgs.mkShell {
     pkgs.cargo
     pkgs.rust-analyzer
     pkgs.protobuf
-
-    # deploy
-    pkgs.nix-simple-deploy
   ];
-
-  shellHook = ''
-    echo "---------------------"
-    echo "Starting infra circus"
-    echo "---------------------"
-    make local-infra
-    echo "---------------------"
-    echo "Sourcing local env"
-    echo "---------------------"
-    source .env.local
-  '';
 }

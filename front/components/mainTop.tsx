@@ -12,8 +12,10 @@ export default function MainTop({ logoCls, linksCls }: ComponentClasses) {
     <>
       <Header/>
       <div className={logoCls}><Pic /></div>
-      <h1>Leo Guercio's (mountolive), or the blog that never was</h1>
-      <h2>Software Engineer, it seems</h2>
+      <h1>
+      Leo Guercio's (mountolive), or the blog that never was.<br/>
+      Software Engineer
+      </h1>
       <p className={linksCls}>
         <a href="https://www.linkedin.com/in/leonardo-guercio-a9b31b35/" target="_blank">LinkedIn</a>
         <span></span>
