@@ -32,6 +32,11 @@ services:
       - USERS_DB_HOST
       - USERS_DB_PORT
       - USERS_PORT
+      - USERS_ADMIN_EMAIL
+      - USERS_ADMIN_USERNAME
+      - USERS_ADMIN_PASSWORD
+      - USERS_ADMIN_FIRST_NAME
+      - USERS_ADMIN_LAST_NAME
     expose:
       - "${USERS_PORT}"
     networks:
