@@ -71,7 +71,7 @@ services:
     networks:
       - nginx_network
     depends_on:
-      dummy-nginx:
+      nginx:
         condition: service_started
     volumes:
       - ./certbot/conf:/etc/letsencrypt
