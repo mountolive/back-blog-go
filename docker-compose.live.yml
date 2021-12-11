@@ -46,7 +46,7 @@ services:
     volumes:
       - pgdata_posts:/var/lib/postgresql/data
 
-  nginx:
+  actual-nginx:
     restart: unless-stopped
     image: nginx:latest
     networks:
@@ -57,11 +57,44 @@ services:
         condition: service_started
       front:
         condition: service_started
+      dummy-nginx:
+        condition: service_completed_successfully
     ports:
-         - 80:80/tcp
-         - 443:443/tcp
+      - 80:80/tcp
+      - 443:443/tcp
     volumes:
-       - ./nginx:/etc/nginx:ro
+      - ./nginx:/etc/nginx:ro
+      - ./certbot/conf:/etc/nginx/ssl
+      - ./certbot/data:/var/www/certbot
+
+  dummy-nginx:
+    restart: unless-stopped
+    image: nginx:latest
+    networks:
+      - nginx_network
+    ports:
+      - 80:80/tcp
+      - 443:443/tcp
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/nginx/ssl
+      - ./certbot/data:/var/www/certbot
+    command: "timeout --preserve-status 10 nginx -g daemon.off"
+
+  certbot:
+    image: certbot/certbot:latest
+    networks:
+      - nginx_network
+    depends_on:
+      dummy-nginx:
+        condition: service_started
+    command: "certonly --webroot --webroot-path=/var/www/certbot \
+              --email ${CERTBOT_EMAIL} --agree-tos --no-eff-email \
+              -d www.leoponc.io -d api.leoponc.io"
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/logs:/var/log/letsencrypt
+      - ./certbot/data:/var/www/certbot
 
   front:
     build:
