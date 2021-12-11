@@ -52,6 +52,11 @@ services:
     networks:
       - nginx_network
       - internal
+    depends_on:
+      gateway:
+        condition: service_started
+      front:
+        condition: service_started
     ports:
       - 80:80/tcp
       - 443:443/tcp
