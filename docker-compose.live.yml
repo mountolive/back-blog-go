@@ -46,38 +46,24 @@ services:
     volumes:
       - pgdata_posts:/var/lib/postgresql/data
 
-  nginx:
+  caddy:
+    image: caddy:2.6.2
     restart: unless-stopped
-    image: nginx:latest
-    networks:
-      - nginx_network
-      - internal
     depends_on:
       gateway:
         condition: service_started
       front:
         condition: service_started
     ports:
-      - 80:80/tcp
-      - 443:443/tcp
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./nginx:/etc/nginx:ro
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
-
-  certbot:
-    image: certbot/certbot:latest
+      - ./caddy/live/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
     networks:
-      - nginx_network
-    depends_on:
-      nginx:
-        condition: service_started
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/logs:/var/log/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+       - caddy_network
 
   front:
     build:
@@ -94,8 +80,7 @@ services:
       - "8080:8080"
     command: "make dev"
     networks:
-       - nginx_network
-       - internal
+       - caddy_network
 
   users:
     build:
@@ -162,7 +147,7 @@ services:
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     networks:
-       - nginx_network
+       - caddy_network
        - internal
     environment:
       - POST_SERVER_USER
@@ -179,8 +164,11 @@ services:
 volumes:
   pgdata_posts:
   pgdata_users:
+  caddy_data:
+    external: true
+  caddy_config:
 
 networks:
-  nginx_network:
+  caddy_network:
     external: true
   internal:

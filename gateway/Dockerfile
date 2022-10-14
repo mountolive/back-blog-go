@@ -1,4 +1,4 @@
-FROM rust:1.55 as builder
+FROM rust:1.64 as builder
 WORKDIR /usr/src/gateway
 COPY . .
 RUN cargo install --path .

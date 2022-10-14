@@ -1,0 +1,9 @@
+{
+  email leo@leoponc.io
+}
+leoponc.io www.leoponc.io {
+  reverse_proxy front:8080
+}
+api.leoponc.io {
+  reverse_proxy gateway:8003
+}
