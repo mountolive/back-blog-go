@@ -7,6 +7,7 @@ services:
       - "4222:4222"
       - "8222:8222"
       - "6222:6222"
+
   postgresql_user:
     image: postgres:13
     environment:
@@ -25,6 +26,7 @@ services:
     command: [ "postgres", "-c", "log_statement=all", "-p", "${USERS_DB_PORT}" ]
     volumes:
       - pgdata_users:/var/lib/postgresql/data
+
   postgresql_post:
     image: postgres:13
     environment:
@@ -43,14 +45,30 @@ services:
     command: [ "postgres", "-c", "log_statement=all", "-p", "${POSTS_DB_PORT}" ]
     volumes:
       - pgdata_posts:/var/lib/postgresql/data
-  nginx:
-     restart: unless-stopped
-     image: nginx:latest
-     ports:
-         - 80:80/tcp
-         - 443:443/tcp
-     volumes:
-       - ./nginx:/etc/nginx:ro
+
+  caddy:
+    image: caddy:2.6.2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/local/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+
 volumes:
   pgdata_posts:
   pgdata_users:
+  caddy_data:
+    external: true
+  caddy_config:
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.59.0/24

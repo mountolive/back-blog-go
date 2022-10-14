@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine
+FROM denoland/deno:1.14.2
 WORKDIR /root/
 COPY . .
 RUN apk add --update --no-cache make curl

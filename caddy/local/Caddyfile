@@ -1,0 +1,8 @@
+{
+  email leo@leoponc.io
+}
+localhost {
+  reverse_proxy        front:8080
+  reverse_proxy /api/* gateway:8003
+}
+

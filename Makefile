@@ -26,13 +26,17 @@ run-gateway:
 	make build-gateway
 	cd gateway && cargo run
 
+add-prereq:
+	@docker network inspect caddy_network >/dev/null 2>&1 || docker network create caddy_network
+	@docker volume inspect caddy_data >/dev/null 2>&1 || docker volume create --name=caddy_data
+
 build-infra:
 	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local build
 
-local-infra:
+local-infra: add-prereq
 	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local up -d
 
-local-infra-no-d:
+local-infra-no-d: add-prereq
 	docker-compose --file docker-compose-infra.yml --file docker-compose-apps.yml --env-file .env.local up
 
 down-infra:
@@ -51,10 +55,10 @@ logs-infra:
 live-build-infra:
 	docker-compose --file docker-compose.live.yml --env-file .env.local build
 
-live-infra:
+live-infra: add-prereq
 	docker-compose --file docker-compose.live.yml --env-file .env.local up -d
 
-live-infra-no-d:
+live-infra-no-d: add-prereq
 	docker-compose --file docker-compose.live.yml --env-file .env.local up
 
 down-live-infra:
