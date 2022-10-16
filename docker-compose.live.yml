@@ -64,6 +64,7 @@ services:
       - caddy_config:/config
     networks:
        - caddy_network
+       - internal
 
   front:
     build:
@@ -81,6 +82,7 @@ services:
     command: "make dev"
     networks:
        - caddy_network
+       - internal
 
   users:
     build:
@@ -147,7 +149,6 @@ services:
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     networks:
-       - caddy_network
        - internal
     environment:
       - POST_SERVER_USER
