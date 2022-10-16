@@ -20,7 +20,7 @@ export default function PostDetail(className: string, id: string) {
         <div>
           <h1>{post.title}</h1>
           <p className="postdate">{post.createdAt}</p>
-          <div>{decode(post.content)}</div>
+          <div>{post.content}</div>
         </div>
       )}
       {!isSyncing && !post && (
