@@ -8,7 +8,7 @@ import SummaryList from '~/components/summaryList.tsx'
 export default function Home() {
   const envs = config();
   const [postsByDate, isSyncing] = fetchAll(
-    `${envs.TRANSPORT}://${envs.GATEWAY_HOST}:${envs.GATEWAY_PORT}/posts-by-date`,
+    `https://api.leoponc.io/posts-by-date`,
   );
 
   return (

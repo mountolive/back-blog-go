@@ -7,7 +7,7 @@ import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
 export default function PostDetail(className: string, id: string) {
   const envs = config();
   const [post, isSyncing] = fetchOne(
-    `${envs.TRANSPORT}://${envs.GATEWAY_HOST}:${envs.GATEWAY_PORT}/posts`,
+    `https://api.leoponc.io/posts`,
     id,
   );
 
