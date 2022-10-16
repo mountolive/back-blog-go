@@ -56,10 +56,10 @@ live-build-infra:
 	docker-compose --file docker-compose.live.yml --env-file .env.local build
 
 live-infra: add-prereq
-	docker-compose --file docker-compose.live.yml --env-file .env.local up -d
+	docker-compose --file docker-compose.live.yml --env-file .env.local up -d --force-recreate
 
 live-infra-no-d: add-prereq
-	docker-compose --file docker-compose.live.yml --env-file .env.local up
+	docker-compose --file docker-compose.live.yml --env-file .env.local up --force-recreate
 
 down-live-infra:
 	docker-compose --file docker-compose.live.yml down --remove-orphans
