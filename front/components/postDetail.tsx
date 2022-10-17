@@ -19,7 +19,7 @@ export default function PostDetail(className: string, id: string) {
         <div>
           <h1>{post.title}</h1>
           <p className="postdate">{post.createdAt}</p>
-          <div dangerouslySetInnerHTML={{__html: post.content)}}/>
+          <div dangerouslySetInnerHTML={{__html: post.content}}/>
         </div>
       )}
       {!isSyncing && !post && (

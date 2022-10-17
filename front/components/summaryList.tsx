@@ -23,5 +23,9 @@ function Summary(post: PostSummary) {
 }
 
 function goToPost(id: string, title: string) {
-  location.href = `/post?id=${id}&title=${title.replace(/\s+/g, '-').toLowerCase()}`
+  location.href = `/post?id=${id}&title=${urlFriendly(title)}`
+}
+
+function urlFriendly(txt: string): string {
+  return txt.replace(/[^a-z0-9_]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
 }
