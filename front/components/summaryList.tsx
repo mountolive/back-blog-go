@@ -16,12 +16,12 @@ export default function SummaryList(className: string, posts: PostSummary[]) {
 function Summary(post: PostSummary) {
   return (
     <div>
-      <h1 onClick={_event => goToPost(post.id)}>{post.title}</h1>
+      <h1 onClick={_event => goToPost(post.id, post.title)}>{post.title}</h1>
       <p>{post.createdAt}</p>
     </div>
   )
 }
 
-function goToPost(id: string) {
-  location.href = `/post?id=${id}`
+function goToPost(id: string, title: string) {
+  location.href = `/post?id=${id}&title=${title.replace(/\s+/g, '-').toLowerCase()}`
 }

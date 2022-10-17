@@ -114,7 +114,9 @@ main {
 
 .post {
   height: 95%;
+  width: 50%;
   overflow: auto;
+  margin: auto;
 }
 
 .postdate {
